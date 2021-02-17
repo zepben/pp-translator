@@ -1,5 +1,5 @@
 import asyncio
-
+#2
 from geopandas import GeoDataFrame
 from zepben.evolve import connect_async, NetworkConsumerClient
 from zepben.evolve import NetworkService, Feeder, EnergySource, EnergySourcePhase, ConnectivityNode, \
@@ -17,6 +17,7 @@ import pandapower.networks as nw
 import matplotlib.pyplot as plt
 import geoplot as gplt
 import mapclassify
+from shapely.geometry import LineString, Point,MultiLineString
 colors=seaborn.color_palette()
 
 '''Coord_df = {'ID_BUS': [], 'X': [], 'Y': []}
@@ -355,11 +356,15 @@ async def main():
         print(res_voltage)
         print("The loading results are:")
         print(net.res_line.loading_percent)
+        #Drop delete columns
+        a=a.drop(['zone', 'in_service'], axis=1)
+        #del a['zone']
         output = pd.merge(res_voltage, a,left_index=True, right_index=True)
         output.to_csv('fileLocation.csv', index=True)
         output2=pd.merge(a, b,left_index=True, right_index=True)
         output2.to_csv('fileLocation2.csv', index=True)
-        output3=pd.merge(output,output2,"left",left_index=True,right_index=True)
+        #output2=output2.drop(['name','vn_kv','type'],axis=1)
+        output3=pd.merge(output,output2.drop(['name','vn_kv','type'],axis=1),"left",left_index=True,right_index=True)
         #Filter NaN Voltage
         output3=output3[output3.vm_pu.notnull()]
         output3.to_csv('Results_Bus.csv', index=True)
@@ -374,6 +379,7 @@ async def main():
         #gdf = gdf.set_crs(epsg=4326)
         #gdf.set_crs(epsg=4326, inplace=True)
         #gdf= gdf.to_crs(epsg=3395)
+        print("geoJSones")
         print(gdf.head)
         #ax = gdf.to_crs('EPSG:3857').plot(color="red", edgecolor="black",markersize=50,figsize=(9, 9))
 
@@ -386,10 +392,36 @@ async def main():
         #ax = gdf.to_crs('EPSG:3857').plot(figsize=(9, 9))
         #print(gdf.crs)
         #cx.add_basemap(ax)
-        plt.show()
-        #Extraer cargabilidad líneas
-        pd.merge(net.res_line.loading_percent, net.line,left_index=True, right_index=True).to_csv('Results_Lines.csv', index=False)
 
+        #Extraer cargabilidad líneas
+        s=pd.merge(net.res_line.loading_percent, net.line,left_index=True, right_index=True)
+        s=s.drop(['parallel','in_service'],axis=1)
+        s.to_csv('Results_Lines.csv', index=False)
+        p=pd.merge(s, output3.drop(['type','coords','geometry'],axis=1)   ,"inner", left_on="from_bus", right_index=True,suffixes=("_LINE","_NODE1"))
+        p.to_csv('Results_Lines2.csv', index=False)
+        q=pd.merge(p,output3.drop(['type','coords','geometry'],axis=1),"inner", left_on="to_bus", right_index=True,suffixes=("_NODE1","_NODE2"))
+        q.to_csv('Results_Lines3.csv', index=False)
+        gdf.to_json()
+        gdf.to_file('dataframe.geojson', driver="GeoJSON")
+        #plt.show()
+        #output3.insert(loc=len(output3.columns),column='geometry2',value='')
+        #for idx in output3.index:
+            #output3.at[idx,"geometry2"]=LineString([(output3.at[idx,"x"],output3.at[idx,"y"]), (output3.at[idx,"x"],output3.at[idx,"y"])])
+        q.insert(loc=len(q.columns),column='geometry',value='')
+        for idx in q.index:
+            q.at[idx,"geometry"]=LineString([(q.at[idx,"x_NODE1"],q.at[idx,"y_NODE1"]), (q.at[idx,"x_NODE2"],q.at[idx,"y_NODE2"])])
+        print(q)
+        gdf2 = geopandas.GeoDataFrame(q, crs="EPSG:4326")
+        gdf2.to_json()
+        gdf2.to_file('dataframe-line.geojson', driver="GeoJSON")
+        #M=MultiLineString
+        #for idx in output3.index:
+            #line=LineString([(output3.at[idx,"x"],output3.at[idx,"y"]), (output3.at[idx,"x"],output3.at[idx,"y"])])
+        #line=LineString([(q.x_x,q.y_x,0), (q.x_y,q.y_y,0)])
+
+        #gdf2 = geopandas.GeoDataFrame(q,crs="EPSG:4326",geometry=LineString ([(q.x_x,q.y_x), (q.x_y,q.y_y)]))
+        #print(line)
+        #print()
         #simple_plotly(net,on_map=True,projection='epsg:4326')
         #crs={'init':'espg:4326'}
         #geometry=[Point(xy)for xy in  zip (output["x"],output["y"])]
