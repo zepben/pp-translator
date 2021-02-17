@@ -1,0 +1,12 @@
+name,std_type,hv_bus,lv_bus,sn_mva,vn_hv_kv,vn_lv_kv,vk_percent,vkr_percent,pfe_kw,i0_percent,shift_degree,tap_side,tap_neutral,tap_min,tap_max,tap_step_percent,tap_step_degree,tap_pos,tap_phase_shifter,parallel,df,in_service,vector_group
+substation_site203086,,311,222,0.005,11.0,0.415,4.0,0.4,0.03,1.0,0.0,,,,,,,,False,1,1.0,True,Dyn
+substation_site324538,,1121,1183,0.005,11.0,0.415,4.0,0.4,0.03,1.0,0.0,,,,,,,,False,1,1.0,True,Dyn
+transformer3405,,1190,397,0.005,11.0,0.415,4.0,0.4,0.03,1.0,0.0,,,,,,,,False,1,1.0,True,Dyn
+transformer3375,,1169,821,0.005,11.0,0.415,4.0,0.4,0.03,1.0,0.0,,,,,,,,False,1,1.0,True,Dyn
+substation_site202755,,74,196,0.005,11.0,0.415,4.0,0.4,0.03,1.0,0.0,,,,,,,,False,1,1.0,True,Dyn
+substation_site199824,,753,1226,0.005,11.0,0.415,4.0,0.4,0.03,1.0,0.0,,,,,,,,False,1,1.0,True,Dyn
+transformer3488,,706,563,0.005,11.0,0.415,4.0,0.4,0.03,1.0,0.0,,,,,,,,False,1,1.0,True,Dyn
+substation_site210792,,1036,907,0.005,11.0,0.415,4.0,0.4,0.03,1.0,0.0,,,,,,,,False,1,1.0,True,Dyn
+substation_site245936,,202,708,0.005,11.0,0.415,4.0,0.4,0.03,1.0,0.0,,,,,,,,False,1,1.0,True,Dyn
+transformer3536,,413,531,0.005,11.0,0.415,4.0,0.4,0.03,1.0,0.0,,,,,,,,False,1,1.0,True,Dyn
+transformer3382,,906,1160,0.005,11.0,0.415,4.0,0.4,0.03,1.0,0.0,,,,,,,,False,1,1.0,True,Dyn
