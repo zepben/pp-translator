@@ -1,14 +1,14 @@
 from typing import FrozenSet, Tuple, Iterable
 
 import pandapower as pp
-from zepben.evolve import Switch, Terminal, NetworkService, AcLineSegment, PerLengthSequenceImpedance, WireInfo, \
-    PowerTransformer, EnergySource, EnergyConsumer
+from zepben.evolve import Terminal, NetworkService, AcLineSegment, PerLengthSequenceImpedance, WireInfo, \
+    PowerTransformer, EnergySource, EnergyConsumer, ConductingEquipment
 
 
 def create_pp_bus(
         bus_branch_model: pp.pandapowerNet,
         base_voltage: int,
-        closed_switches: FrozenSet[Switch],
+        negligible_impedance_equipment: FrozenSet[ConductingEquipment],
         border_terminals: FrozenSet[Terminal],
         inner_terminals: FrozenSet[Terminal],
         node_breaker_model: NetworkService
