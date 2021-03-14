@@ -18,7 +18,7 @@ async def main():
         service = NetworkService()
         client = NetworkConsumerClient(channel)
         result = (await client.get_feeder(service, 'basicFeeder')).throw_on_error()
-        print(service.get('baiscFeeder'))
+        print(service.get('basicFeeder'))
         net = pp.create_empty_network()
         pd.set_option('display.max_columns', None)
 

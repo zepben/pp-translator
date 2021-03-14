@@ -1,0 +1,7 @@
+setup.py
+src/pp-translator/__init__.py
+src/pp_translator.egg-info/PKG-INFO
+src/pp_translator.egg-info/SOURCES.txt
+src/pp_translator.egg-info/dependency_links.txt
+src/pp_translator.egg-info/requires.txt
+src/pp_translator.egg-info/top_level.txt

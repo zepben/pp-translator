@@ -1,0 +1,6 @@
+zepben.evolve==0.23.0b6
+pydash
+geopandas
+
+[test]
+pytest
