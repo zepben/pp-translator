@@ -10,7 +10,7 @@ from test.pp_test_utils import validate_pp_load_flow_results, assert_no_creation
 # noinspection PyPackageRequirements
 from zepben.evolve.model.busbranch.bus_branch import create_bus_branch_model
 
-from pp_creators.creators import create_pp_bus, create_pp_line, create_pp_load, create_pp_line_type, get_line_type_id, \
+from src.pp_creators.creators import create_pp_bus, create_pp_line, create_pp_load, create_pp_line_type, get_line_type_id, \
     create_pp_transformer, create_pp_transformer_type, get_transformer_type_id, create_pp_grid_connection
 
 
