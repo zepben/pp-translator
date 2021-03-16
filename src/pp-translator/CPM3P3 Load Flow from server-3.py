@@ -132,8 +132,8 @@ def get_index(Nombre_Nodo, Nodos):
 
 def get_head_feeder(service, a):
     for Feederp in service.objects(Feeder):
-        Nodo_Cabecera = get_index(conn_to_junction(Feederp.normal_head_terminal.connectivity_node).mrid, a)
-        return (Nodo_Cabecera)
+        Node_head = get_index(conn_to_junction(Feederp.normal_head_terminal.connectivity_node).mrid, a)
+        return (Node_head)
 
 def get_base_voltage(service):
     for Base in service.objects(BaseVoltage):
@@ -196,18 +196,65 @@ def create_transformers(service, net, a):
             except:
                 print("No hay trafo")
 
-def create_generators(service, net, a, Nodo_Cabecera):
+def create_generators(service, net, a, Node_head,df2):
     # TODO:Validate generators parameters required to load flow (Actually these values are constants)
     for Ext in service.objects(EnergySource):
         bus = get_index(conn_to_junction(Ext._terminals[0].connectivity_node).mrid, a)
-        if bus == Nodo_Cabecera:
+        if bus == Node_head:
             p_mw = Ext.p_max + 1
             pp.create_ext_grid(net, bus=bus, name=Ext.mrid, va_degree=0, s_sc_max_mva=1000, s_sc_min_mva=800,
                                rx_max=0.1, r0x0_max=1, x0x_max=1, r0x0_min=0.1, x0x_min=1)
             print("Las redes externas son:" + Ext.mrid, "|", bus, Ext.voltage_magnitude, p_mw)
     if net.ext_grid.empty == True:
-        # pp.create_ext_grid(net,name="External_Grid",bus=Nodo_Cabecera,p_mw=10,va_degree=0,s_sc_max_mva=1000,s_sc_min_mva=800,rx_max=0.1)
-        pp.create_ext_grid(net, name="External_Grid", bus=Nodo_Cabecera, va_degree=0, s_sc_max_mva=1000,
+        # pp.create_ext_grid(net,name="External_Grid",bus=Node_head,p_mw=10,va_degree=0,s_sc_max_mva=1000,s_sc_min_mva=800,rx_max=0.1)
+        pp.create_ext_grid(net, name="External_Grid", bus=Node_head, va_degree=0, s_sc_max_mva=1000,
+                           s_sc_min_mva=800, rx_max=0.1)
+
+    for eq in service.objects(Equipment):
+        for up in list(eq.usage_points):
+            for mt in list(up.end_devices):
+                for idx in df2.index:
+                #print(int(df.at[idx,"premnum"]),"/",mt.service_location.name)
+                    if int(df2.at[idx,"premnum"])==int(mt.service_location.name):
+                        #Fases = eq._terminals[0].phases.
+                        Fases="ABC"
+                        bus = get_index(conn_to_junction(eq._terminals[0].connectivity_node).mrid, a)
+                        p_mw=df2.at[idx,"Gen"]/1000
+                        q_mvar=0
+                        #sn_mva = Generators.p_max
+                        #angle = Generators.voltage_angle
+                        sn_mva=1
+                        angle=0
+                        slack = False
+                        type = "PV"
+                        if bus != Node_head:
+                            if Fases == "A":
+                                pp.create_asymmetric_sgen(net, name="Gen"+eq.mrid, bus=bus, p_a_mw=p_mw, q_a_mvar=q_mvar,sn_mva=sn_mva, type=type)
+                                #pp.create_asymmetric_sgen(net, name="Gen"+eq.mrid, bus=bus, p_a_mw=p_mw, q_a_mvar=q_mvar,sn_mva=sn_mva, type=type)
+                            elif Fases == "B":
+                                pp.create_asymmetric_sgen(net, name="Gen"+eq.mrid, bus=bus, p_b_mw=p_mw, q_b_mvar=q_mvar,sn_mva=sn_mva, type=type)
+                            elif Fases == "C":
+                                pp.create_asymmetric_sgen(net, name="Gen"+eq.mrid, bus=bus, p_c_mw=p_mw, q_c_mvar=q_mvar,sn_mva=sn_mva, type=type)
+                            elif Fases == "ABC" or Fases == "ABCN":
+                                #pp.create_gen(net, name=Generators.mrid, bus=bus, p_mw=p_mw)
+                                pp.create_gen(net, name="Gen"+eq.mrid, bus=bus, p_mw=p_mw)
+                            # print("2")
+                            #print("Los generadores son:" + Generators.mrid, "|", bus, Generators.voltage_magnitude, sn_mva, angle)
+                            #print("Los generadores son:" + "Gen"+eq.mrid, "|", bus, Generators.voltage_magnitude, sn_mva, angle)
+                        break
+
+'''def create_generators(service, net, a, Node_head,df2):
+    # TODO:Validate generators parameters required to load flow (Actually these values are constants)
+    for Ext in service.objects(EnergySource):
+        bus = get_index(conn_to_junction(Ext._terminals[0].connectivity_node).mrid, a)
+        if bus == Node_head:
+            p_mw = Ext.p_max + 1
+            pp.create_ext_grid(net, bus=bus, name=Ext.mrid, va_degree=0, s_sc_max_mva=1000, s_sc_min_mva=800,
+                               rx_max=0.1, r0x0_max=1, x0x_max=1, r0x0_min=0.1, x0x_min=1)
+            print("Las redes externas son:" + Ext.mrid, "|", bus, Ext.voltage_magnitude, p_mw)
+    if net.ext_grid.empty == True:
+        # pp.create_ext_grid(net,name="External_Grid",bus=Node_head,p_mw=10,va_degree=0,s_sc_max_mva=1000,s_sc_min_mva=800,rx_max=0.1)
+        pp.create_ext_grid(net, name="External_Grid", bus=Node_head, va_degree=0, s_sc_max_mva=1000,
                            s_sc_min_mva=800, rx_max=0.1)
 
     for Generators in service.objects(EnergySource):
@@ -227,7 +274,7 @@ def create_generators(service, net, a, Nodo_Cabecera):
         slack = False
         type = "PV"
 
-        if bus != Nodo_Cabecera:
+        if bus != Node_head:
             if Fases == "A":
                 pp.create_asymmetric_sgen(net, name=Generators.mrid, bus=bus, p_a_mw=p_mw, q_a_mvar=q_mvar,
                                           sn_mva=sn_mva, type=type)
@@ -242,23 +289,40 @@ def create_generators(service, net, a, Nodo_Cabecera):
             # print("2")
             print("Los generadores son:" + Generators.mrid, "|", bus, Generators.voltage_magnitude, sn_mva, angle)
     # print(net.gen)
-
-def create_load(service, net, a):
+'''
+def create_load(service, net, a,df):
     # TODO:Validate value loads.
     # This case is when the phases are defined.
     for Load in service.objects(EnergyConsumer):
         Fases = Load._terminals[0].phases.name
+        #Fases="ABC"
         bus = get_index(conn_to_junction(Load._terminals[0].connectivity_node).mrid, a)
-        p_mw = (Load.p / 1000000) + 0.001
-        q_mvar = (Load.q / 1000000) + 0.0003
-        if Fases == "A":
-            pp.create_asymmetric_load(net, name=Load.mrid, bus=bus, p_a_mw=p_mw, q_a_mvar=q_mvar, type='wye')
-        elif Fases == "B":
-            pp.create_asymmetric_load(net, name=Load.mrid, bus=bus, p_b_mw=p_mw, q_b_mvar=q_mvar, type='wye')
-        elif Fases == "C":
-            pp.create_asymmetric_load(net, name=Load.mrid, bus=bus, p_c_mw=p_mw, q_c_mvar=q_mvar, type='wye')
-        elif Fases == "ABC" or Fases == "ABCN":
-            pp.create_load(net, name=Load.mrid, bus=bus, p_mw=p_mw, q_mvar=q_mvar)
+
+        for up in list(Load.usage_points):
+            for mt in list(up.end_devices):
+                #print(f"{Load.mrid}/{Load.name}/{mt.service_location.name}ESTE INICIO")
+                #print(df)
+                for idx in df.index:
+                    #print(int(df.at[idx,"premnum"]),"/",mt.service_location.name)
+                    if int(df.at[idx,"premnum"])==int(mt.service_location.name):
+                        p_mw=df.at[idx,"Carga"]/1000
+                        #print(f"{Load.mrid}/{Load.name}/{mt.service_location.name}/{Fases}/ESTE FIN")
+                        #Load=5
+
+                        #print(Load)
+                        q_mvar=0
+                        #p_mw = (Load.p / 1000000) + 0.001
+                        #q_mvar = (Load.q / 1000000) + 0.0003
+
+                        if Fases == "A":
+                            pp.create_asymmetric_load(net, name=Load.mrid, bus=bus, p_a_mw=p_mw, q_a_mvar=q_mvar, type='wye')
+                        elif Fases == "B":
+                            pp.create_asymmetric_load(net, name=Load.mrid, bus=bus, p_b_mw=p_mw, q_b_mvar=q_mvar, type='wye')
+                        elif Fases == "C":
+                            pp.create_asymmetric_load(net, name=Load.mrid, bus=bus, p_c_mw=p_mw, q_c_mvar=q_mvar, type='wye')
+                        elif Fases == "ABC" or Fases == "ABCN"or Fases == "XN":
+                            pp.create_load(net, name=Load.mrid, bus=bus, p_mw=p_mw, q_mvar=q_mvar)
+                        break
 
 def create_load_with_phases(service, net, a):
     # This function create randomly the phases when these are not defined
@@ -296,10 +360,10 @@ def create_lines(service, net, a):
             r0_ohm_per_km = (Equip.per_length_sequence_impedance.r0) + 0.001
             x0_ohm_per_km = (Equip.per_length_sequence_impedance.x0) + 0.001
             c0_nf_per_km = (Equip.per_length_sequence_impedance.x0) + 0.001
-            max_i_ka = 1000
-            pp.create_line_from_parameters(net, name=Equip.mrid, from_bus=from_bus, to_bus=to_bus, length_km=0.01,
-                                           c_nf_per_km=c_nf_per_km, max_i_ka=max_i_ka, r_ohm_per_km=0.001,
-                                           x_ohm_per_km=0.001)
+            max_i_ka = 0.4
+            pp.create_line_from_parameters(net, name=Equip.mrid, from_bus=from_bus, to_bus=to_bus, length_km=length_km,
+                                           c_nf_per_km=c_nf_per_km, max_i_ka=max_i_ka, r_ohm_per_km=r_ohm_per_km,
+                                           x_ohm_per_km=x_ohm_per_km)
             #print(Equip.location._position_points[0].x_position)
             net.bus_geodata.at[from_bus,"x"]=(Equip.location._position_points[0].x_position)
             net.bus_geodata.at[from_bus,"y"]=(Equip.location._position_points[0].y_position)
@@ -368,6 +432,16 @@ def result_loads(load,res_load,term_results):
             term_results.at[idx,'q']=int(term_results.at[idx,'q']*1000000)
     return term_results
 
+def geojson_lines(name_bus, b,  res_line,line):
+    #output = pd.merge(res_voltage.drop(['p_mw','q_mvar'],axis=1), a.drop(['type','zone','in_service'],axis=1),left_index=True, right_index=True)
+    output=pd.merge(name_bus, b,left_index=True, right_index=True)
+    output=output[output.vm_pu.notnull()]
+    #output.drop(['vn_kv','vm_pu','coords']
+    output2=pd.merge(res_line.drop(['pl_mw','ql_mvar','i_from_ka','i_to_ka','i_ka','vm_from_pu','va_from_degree','vm_to_pu','va_to_degree'],axis=1), line.drop(['length_km','r_ohm_per_km','x_ohm_per_km','c_nf_per_km','g_us_per_km','max_i_ka','df','type','parallel','in_service','std_type'],axis=1),left_index=True, right_index=True)
+    output2=pd.merge(output2, output.drop(['vm_pu','va_degree','vn_kv','coords'],axis=1) ,"inner", left_on="from_bus", right_index=True,suffixes=("_LINE","_NODE1"))
+    output2=pd.merge(output2,output.drop(['vm_pu','va_degree','vn_kv','coords'],axis=1)  ,"inner", left_on="to_bus", right_index=True,suffixes=("_NODE1","_NODE2"))
+    return output2
+
 
 async def main():
     feeder_mrid = "CPM3B3"
@@ -398,8 +472,10 @@ async def main():
                 if Equip.mrid==p.at[idx,"name"] and type(Equip).__name__==p.at[idx,"type_element"]:
                     if p.at[idx,"basevol"]=="base-voltage-11000":
                         Equip.base_voltage=bv_11kv
+                        break
                     if p.at[idx,"basevol"]=="base-voltage-415":
                         Equip.base_voltage=bv_045kv
+                        break
                     #print(Equip.mrid,type(Equip).__name__,Equip.base_voltage.nominal_voltage)
 
         term_results=create_bus(service, net)
@@ -415,13 +491,21 @@ async def main():
         create_recloser(service, net, a)
         create_transformers(service, net, a)
         print(net.trafo)
-        Nodo_Cabecera = get_head_feeder(service, a)
-        create_generators(service, net, a, Nodo_Cabecera)
-        create_load(service, net, a)
+        Node_head = get_head_feeder(service, a)
+        create_generators(service, net, a, Node_head,pd.read_csv('Generator-Input.csv'))
+        net.gen.to_csv('Generators.csv', index=False)
+        create_load(service, net, a,pd.read_csv('Carga-Input.csv'))
+        net.load.to_csv('Loads.csv', index=False)
         pp.runpp(net)
         name_bus=name_busbar(net.res_bus, a)
         term_resultsX=result_busbar(name_bus, b, term_results)
         term_resultsX.to_csv('Test.csv', index=True)
+
+        #Begin Test  results geojson lines
+        Test=geojson_lines(name_bus, b, net.res_line,net.line)
+        Test.to_csv('GeoJSONLINES.csv', index=True)
+        #End Test  results geojson lines
+
         term_resultsX=result_lines(net.res_line,net.line,name_bus,term_resultsX)
         term_resultsX.to_csv('Test2.csv', index=True)
         term_resultsX=result_trafos(net.trafo,net.res_trafo,net.bus,term_resultsX)
@@ -434,9 +518,9 @@ async def main():
         term_resultsX.to_csv('Test5.csv', index=False)
 
         #Test GeoJSON
-        
-        #gdf11 = geopandas.GeoDataFrame(term_resultsX, crs="EPSG:4326")
-        #gdf11.to_file('Output2.geojson', driver="GeoJSON")
+
+        gdf11 = geopandas.GeoDataFrame(term_resultsX, crs="EPSG:4326")
+        gdf11.to_file('Output2.geojson', driver="GeoJSON")
 
         term_resultsX.insert(1,'SvVoltage',"")
         term_resultsX.insert(2,'SvPowerFlow',"")
