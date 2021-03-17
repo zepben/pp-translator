@@ -78,7 +78,7 @@ def create_bus(service, net):
 def print_feeder_eq(service):
     datavolt = {'name': [], 'type_element': [],'basevol':[]}
     df = pd.DataFrame(datavolt)
-    for equip in service.objects(Equipment):
+    for equip in service.objects(ConductingEquipment):
         if equip.get_base_voltage()!=None:
             print(equip.mrid,type(equip).__name__, equip.base_voltage.mrid, equip.base_voltage.nominal_voltage)
             new_row = {'name': equip.mrid, 'type_element': type(equip).__name__,'basevol':equip.base_voltage.mrid}
@@ -494,7 +494,7 @@ async def main():
         Node_head = get_head_feeder(service, a)
         create_generators(service, net, a, Node_head,pd.read_csv('Generator-Input.csv'))
         net.gen.to_csv('Generators.csv', index=False)
-        create_load(service, net, a,pd.read_csv('Carga-Input.csv'))
+        create_load(service, net, a,pd.read_csv('Load-Input.csv'))
         net.load.to_csv('Loads.csv', index=False)
         pp.runpp(net)
         name_bus=name_busbar(net.res_bus, a)
