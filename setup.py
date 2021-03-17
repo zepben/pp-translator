@@ -31,7 +31,7 @@ setup(
     package_dir={'': 'src'},
     py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
     install_requires=[
-        "zepben.evolve==0.21.0",
+        "zepben.evolve==0.22.0",
         "pydash",
         "geopandas"
     ],
