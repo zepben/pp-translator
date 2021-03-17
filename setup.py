@@ -16,12 +16,11 @@ You should have received a copy of the GNU Affero General Public License
 along with ejsonbend.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-
 from glob import glob
 from os.path import basename
 from os.path import splitext
-from setuptools import setup, find_packages
 
+from setuptools import setup, find_packages
 
 test_deps = ["pytest"]
 setup(
@@ -31,7 +30,7 @@ setup(
     package_dir={'': 'src'},
     py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
     install_requires=[
-        "zepben.evolve==0.21.0",
+        "zepben.evolve>=0.22.0",
         "pydash",
         "geopandas"
     ],
