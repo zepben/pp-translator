@@ -10,6 +10,7 @@ decorator==4.4.2
 ecdsa==0.16.1
 et-xmlfile==1.0.1
 future==0.18.2
+geojson==2.5.0
 grpcio==1.36.0
 grpcio-tools==1.36.0
 idna==2.10
