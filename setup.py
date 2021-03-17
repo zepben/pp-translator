@@ -24,7 +24,7 @@ from setuptools import setup, find_packages
 
 test_deps = ["pytest", "pytest-cov", "pytest-asyncio", "hypothesis<6"]
 setup(
-    name="pp-translator",
+    name="pp_translator",
     version="0.1",
     packages=find_packages('src'),
     package_dir={'': 'src'},
