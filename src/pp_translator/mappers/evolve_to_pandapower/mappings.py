@@ -11,7 +11,7 @@ class EvolveToPandaPowerMap:
         self.pp_net: pp.pandapowerNet = pp_net
         self.connectivity_nodes_to_buses()
         self.connectors_to_buses()
-        self.switch_to_switch()
+        self.switch_to_bus()
         self.conductors_to_lines()
         self.head_terminal_to_ext_grid()
         self.power_transformers_to_trafo()
@@ -22,7 +22,7 @@ class EvolveToPandaPowerMap:
         for ec in self.network_service.objects(EnergyConsumer):
             ec: EnergyConsumer = ec
             bus = self.get_bus_indexes_by_cond_eq(ec)[0]
-            pp.create_load(net=self.pp_net, bus=bus, p_mw=ec.p/1000000, q_mvar=ec.q/1000000)
+            pp.create_load(net=self.pp_net, bus=bus, p_mw=ec.p / 1000000, q_mvar=ec.q / 1000000)
 
     def connectivity_nodes_to_buses(self):
         print(f'Mapping Connectivity Nodes to Buses')
@@ -80,6 +80,16 @@ class EvolveToPandaPowerMap:
                 print(f'Switch with only one terminal neglected. {sw}')
                 pass
 
+    def switch_to_bus(self):
+        print(f'Mapping Switch to Bus')
+        for sw in self.network_service.objects(Switch):
+            sw: Switch = sw
+            if sw.base_voltage is not None:
+                vn_kv = sw.base_voltage.nominal_voltage
+                pp.create_bus(self.pp_net, vn_kv=vn_kv, name=str(sw.mrid))
+            else:
+                raise Exception(f'None nominal_voltage was found for the junction {sw}')
+
     def conductors_to_lines(self):
         print(f'Mapping Conductors to Lines')
         for conductor in self.network_service.objects(Conductor):
@@ -94,17 +104,19 @@ class EvolveToPandaPowerMap:
                 # High Voltage
                 std_type = "N2XS(FL)2Y 1x120 RM/35 64/110 kV"
             pp.create_line(self.pp_net, from_bus=from_bus, to_bus=to_bus,
-                           length_km=conductor.length/1000,
+                           length_km=conductor.length / 1000,
                            std_type=std_type)
 
     def power_transformers_to_trafo(self):
         print(f'Mapping PowerTransformers to Transformers')
         for transformer in self.network_service.objects(PowerTransformer):
-            print(list(transformer.terminals))
             transformer: PowerTransformer = transformer
             if len(list(transformer.ends)):
-                [hv_bus, lv_bus] = self.get_bus_indexes_by_cond_eq(transformer)
-                pp.create_transformer(self.pp_net, hv_bus=hv_bus, lv_bus=lv_bus, std_type="0.4 MVA 20/0.4 kV")
+                if transformer.num_terminals() == 2:
+                    [hv_bus, lv_bus] = self.get_bus_indexes_by_cond_eq(transformer)
+                    pp.create_transformer(self.pp_net, hv_bus=hv_bus, lv_bus=lv_bus, std_type="0.4 MVA 20/0.4 kV")
+                else:
+                    print(f'Transformer with num_terminals  different to 2 neglected. {transformer}')
             else:
                 raise Exception(f'Mapping of non two winding transformers is not supported')
 

@@ -141,3 +141,4 @@ def network_service_inventory(network_service: NetworkService):
     print(f' - Energy Consumers: {len(list(network_service.objects(EnergyConsumer)))}')
     print(f' - Conductors: {len(list(network_service.objects(Conductor)))}')
     print(f' - Power Transformers: {len(list(network_service.objects(PowerTransformer)))}')
+    print(f' - ACLineSegments: {len(list(network_service.objects(AcLineSegment)))}')
