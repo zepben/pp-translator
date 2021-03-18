@@ -2,7 +2,7 @@ import asyncio
 
 import pandapower as pp
 from zepben.evolve import connect_async, NetworkConsumerClient, NetworkService, ConnectivityNode, \
-    Junction, EnergyConsumer, Switch
+    Junction, EnergyConsumer, Switch, Connector
 
 from pp_translator.mappers.evolve_to_pandapower.mappings import EvolveToPandaPowerMap
 
@@ -27,10 +27,15 @@ async def main():
             print(f'NetworkService loaded for the Feeder mRID: {feeder_mrid}, with the following data:')
             cns_count = len(list(network_service.objects(ConnectivityNode)))
             print(f' - Connectivity Nodes: {cns_count}')
-            junctions_count = len(list(network_service.objects(Junction)))
-            print(f' - Junctions: {junctions_count}')
-            print(f' - Switches: {len(list(network_service.objects(Switch)))}')
-            print(f' - ConnectivityNodes + Junctions: {junctions_count + cns_count}')
+            connector_count = len(list(network_service.objects(Connector)))
+            print(f' - Connectors: {connector_count}')
+            list_sw = list(network_service.objects(Switch))
+            sw_count = len(list_sw)
+            print(f' - Switches: {sw_count}')
+            closed_switches_count = len([sw for sw in list_sw if sw.is_open() is False])
+            print(f' - Closed Switches: {closed_switches_count}')
+            print(f' - ConnectivityNodes + Junctions + closed Switches: '
+                  f'{connector_count + cns_count + closed_switches_count}')
             print(f' - Energy Consumers: {len(list(network_service.objects(EnergyConsumer)))}')
         else:
             raise Exception(f'Any Feeder was found with mRID {feeder_mrid}')
