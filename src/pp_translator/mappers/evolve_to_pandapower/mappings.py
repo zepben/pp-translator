@@ -1,7 +1,7 @@
 import pandapower as pp
 import pandas as pd
 from zepben.evolve import NetworkService, ConnectivityNode, PowerElectronicsConnection, \
-    PowerTransformer, Switch, Connector, Conductor
+    PowerTransformer, Switch, Connector, Conductor, Feeder, Terminal
 
 
 class EvolveToPandaPowerMap:
@@ -12,6 +12,7 @@ class EvolveToPandaPowerMap:
         self.connectors_to_buses()
         self.switches_to_buses()
         self.conductors_to_lines()
+        self.head_terminal_to_ext_grid()
 
     def connectivity_nodes_to_buses(self):
         print(f'Mapping Connectivity Nodes to Buses')
@@ -82,8 +83,19 @@ class EvolveToPandaPowerMap:
                            std_type=std_type)
 
     def head_terminal_to_ext_grid(self):
-        print(f'Mapping Head Terminal to External Grid')
-
+        print(f'Creating External Grid')
+        fdr_list = list(self.network_service.objects(Feeder))
+        if len(fdr_list) == 1:
+            fdr: Feeder = fdr_list[0]
+            head_terminal: Terminal = fdr.normal_head_terminal
+            print(f'Head Terminal found: {head_terminal}')
+        else:
+            raise Exception(f'Multiple Feeders found. Ext Grid creation failed.')
+        cn: ConnectivityNode = head_terminal.connectivity_node
+        bus_name = cn.mrid
+        bus = self.get_bus_index_by_name(bus_name)
+        pp.create_ext_grid(self.pp_net, vm_pu=1, va_degree=0, name=fdr.name, bus=bus)
+        print(f'External Grid created.')
 
     def get_bus_indexes_by_conductor(self, conductor: Conductor):
         index_bus = []
