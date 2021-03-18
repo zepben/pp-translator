@@ -36,8 +36,10 @@ async def main():
         network_service = NetworkService()
         (await client.get_feeder(network_service, mrid=feeder_mrid)).throw_on_error()
         print(network_service.get(feeder_mrid))
-        print(list(network_service.objects(Disconnector)))
-        pp_net = get_panda_power_network(network_service)
+        result = get_panda_power_network(network_service)
+        errors = result.errors
+        pp_net = result.bus_branch_model
+        print(errors)
         print(pp_net)
 
 
