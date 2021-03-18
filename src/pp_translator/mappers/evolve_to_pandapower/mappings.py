@@ -1,6 +1,7 @@
 import pandapower as pp
-from zepben.evolve import AcLineSegment, NetworkService, ConnectivityNode, PowerElectronicsConnection, \
-    PowerTransformer, Junction, Switch, Connector
+import pandas as pd
+from zepben.evolve import NetworkService, ConnectivityNode, PowerElectronicsConnection, \
+    PowerTransformer, Switch, Connector, Conductor
 
 
 class EvolveToPandaPowerMap:
@@ -10,11 +11,12 @@ class EvolveToPandaPowerMap:
         self.connectivity_nodes_to_buses()
         self.connectors_to_buses()
         self.switches_to_buses()
+        self.conductors_to_lines()
 
     def connectivity_nodes_to_buses(self):
         print(f'Mapping Connectivity Nodes to Buses')
-        for obj in self.evolve_service.objects(ConnectivityNode):
-            cn: ConnectivityNode = obj
+        for cn in self.evolve_service.objects(ConnectivityNode):
+            cn: ConnectivityNode = cn
             vn_kv = None
             for terminal in list(cn.terminals):
                 if isinstance(terminal.conducting_equipment, PowerElectronicsConnection):
@@ -43,8 +45,8 @@ class EvolveToPandaPowerMap:
 
     def connectors_to_buses(self):
         print(f'Mapping Connectors to Buses')
-        for obj in self.evolve_service.objects(Connector):
-            connector: Connector = obj
+        for connector in self.evolve_service.objects(Connector):
+            connector: Connector = connector
             if connector.base_voltage is not None:
                 vn_kv = connector.base_voltage.nominal_voltage
                 pp.create_bus(self.pp_net, vn_kv=vn_kv, name=str(connector.mrid))
@@ -53,8 +55,8 @@ class EvolveToPandaPowerMap:
 
     def switches_to_buses(self):
         print(f'Mapping closed Switches to Buses')
-        for obj in self.evolve_service.objects(Switch):
-            sw: Switch = obj
+        for sw in self.evolve_service.objects(Switch):
+            sw: Switch = sw
             if sw.is_open() is False:
                 if sw.base_voltage is not None:
                     vn_kv = sw.base_voltage.nominal_voltage
@@ -62,6 +64,12 @@ class EvolveToPandaPowerMap:
                 else:
                     raise Exception(f'None nominal_voltage was found for the junction {sw}')
 
-    def ac_line_segments_to_lines(self):
-        for acls in self.evolve_service.objects(AcLineSegment):
-            pp.create_line(self.pp_net, from_bus=1, to_bus=1)  # TODO: add input busses
+    def conductors_to_lines(self):
+        df = pd.DataFrame(self.pp_net.bus)
+        print(df['name'])
+        for conductor in self.evolve_service.objects(Conductor):
+            conductor: Conductor = conductor
+            conductor.get_terminal_by_sn(1)
+            # pp.create_line(self.pp_net, from_bus=1, to_bus=1)  # TODO: add input busses
+
+
