@@ -1,7 +1,7 @@
 import pandapower as pp
 import pandas as pd
 from zepben.evolve import NetworkService, ConnectivityNode, PowerElectronicsConnection, \
-    PowerTransformer, Switch, Connector, Conductor, Terminal
+    PowerTransformer, Switch, Connector, Conductor
 
 
 class EvolveToPandaPowerMap:
@@ -78,8 +78,12 @@ class EvolveToPandaPowerMap:
                 # High Voltage
                 std_type = "N2XS(FL)2Y 1x120 RM/35 64/110 kV"
             pp.create_line(self.pp_net, from_bus=from_bus, to_bus=to_bus,
-                           length_km=conductor.length * 1000,
+                           length_km=conductor.length,
                            std_type=std_type)
+
+    def head_terminal_to_ext_grid(self):
+        print(f'Mapping Head Terminal to External Grid')
+
 
     def get_bus_indexes_by_conductor(self, conductor: Conductor):
         index_bus = []
