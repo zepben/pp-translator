@@ -124,6 +124,7 @@ class SimpleNodeBreakerFeeder:
 
 
 def network_service_inventory(network_service: NetworkService):
+    print('Network Service Inventory:')
     print(f' - BaseVoltages: {list(network_service.objects(BaseVoltage))}')
     cns_count = len(list(network_service.objects(ConnectivityNode)))
     print(f' - Connectivity Nodes: {cns_count}')
@@ -138,3 +139,4 @@ def network_service_inventory(network_service: NetworkService):
           f'{connector_count + cns_count + closed_switches_count}')
     print(f' - Energy Consumers: {len(list(network_service.objects(EnergyConsumer)))}')
     print(f' - Conductors: {len(list(network_service.objects(Conductor)))}')
+    print(f' - Power Transformers: {len(list(network_service.objects(PowerTransformer)))}')

@@ -1,17 +1,10 @@
 import asyncio
 
 import pandapower as pp
-from zepben.evolve import connect_async, NetworkConsumerClient, NetworkService, ConnectivityNode, \
-    Junction, EnergyConsumer, Switch, Connector
-
-from pp_translator.studies.utils import network_service_inventory
+from zepben.evolve import connect_async, NetworkConsumerClient, NetworkService
 
 from pp_translator.mappers.evolve_to_pandapower.mappings import EvolveToPandaPowerMap
-
-
-def create_pp_model(network_service) -> pp.pandapowerNet:
-    pp_net = pp.create_empty_network()
-    return EvolveToPandaPowerMap(evolve_service=network_service, pp_net=pp_net).pp_net
+from pp_translator.studies.utils import network_service_inventory
 
 
 async def main():
@@ -32,7 +25,7 @@ async def main():
 
         # Create PandaPower model
         pp_net = pp.create_empty_network()
-        EvolveToPandaPowerMap(network_service=network_service, pp_net=pp_net)
+        EvolveToPandaPowerMap(network_service=network_service, pp_net=pp_net, feeder_mrid=feeder_mrid)
         pp.to_sqlite(net=pp_net, filename='cpm3b3_pp_net.sqlite', include_results=False)
 
 

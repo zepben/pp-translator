@@ -5,14 +5,16 @@ from zepben.evolve import NetworkService, ConnectivityNode, PowerElectronicsConn
 
 
 class EvolveToPandaPowerMap:
-    def __init__(self, network_service: NetworkService, pp_net: pp.pandapowerNet):
+    def __init__(self, network_service: NetworkService, pp_net: pp.pandapowerNet, feeder_mrid):
         self.network_service: NetworkService = network_service
+        self.feeder_mrid = feeder_mrid
         self.pp_net: pp.pandapowerNet = pp_net
         self.connectivity_nodes_to_buses()
         self.connectors_to_buses()
         self.switches_to_buses()
         self.conductors_to_lines()
         self.head_terminal_to_ext_grid()
+        self.power_transformers_to_trafo()
 
     def connectivity_nodes_to_buses(self):
         print(f'Mapping Connectivity Nodes to Buses')
@@ -82,19 +84,27 @@ class EvolveToPandaPowerMap:
                            length_km=conductor.length,
                            std_type=std_type)
 
+    def power_transformers_to_trafo(self):
+        print(f'Mapping PowerTransformers to Transformers')
+        for transformer in self.network_service.objects(PowerTransformer):
+            transformer: PowerTransformer = transformer
+            if len(list(transformer.ends)):
+                pass  # pp.create_transformer(self.pp_net)
+            else:
+                raise Exception(f'Mapping of non two winding transformers is not supported')
+
     def head_terminal_to_ext_grid(self):
         print(f'Creating External Grid')
-        fdr_list = list(self.network_service.objects(Feeder))
-        if len(fdr_list) == 1:
-            fdr: Feeder = fdr_list[0]
-            head_terminal: Terminal = fdr.normal_head_terminal
+        feeder = self.network_service.get(self.feeder_mrid)
+        if isinstance(feeder, Feeder):
+            head_terminal: Terminal = feeder.normal_head_terminal
             print(f'Head Terminal found: {head_terminal}')
         else:
-            raise Exception(f'Multiple Feeders found. Ext Grid creation failed.')
+            raise Exception(f'Head Terminal for feeder mRID:  {self.feeder_mrid} not found. Ext Grid creation failed.')
         cn: ConnectivityNode = head_terminal.connectivity_node
         bus_name = cn.mrid
         bus = self.get_bus_index_by_name(bus_name)
-        pp.create_ext_grid(self.pp_net, vm_pu=1, va_degree=0, name=fdr.name, bus=bus)
+        pp.create_ext_grid(self.pp_net, vm_pu=1, va_degree=0, name=feeder.mrid, bus=bus)
         print(f'External Grid created.')
 
     def get_bus_indexes_by_conductor(self, conductor: Conductor):
