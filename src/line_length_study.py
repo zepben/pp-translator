@@ -14,7 +14,7 @@ async def main():
     async with connect_async(host=host, rpc_port=rpc_port) as channel:
         client = NetworkConsumerClient(channel)
         network = NetworkService()
-        result = (await client.get_feeder(network, mrid=feeder_mrid)).throw_on_error()
+        (await client.get_feeder(network, mrid=feeder_mrid)).throw_on_error()
 
         long_acls = list()
         for io in network.objects(AcLineSegment):
