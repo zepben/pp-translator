@@ -1,7 +1,7 @@
 import pandapower as pp
 import pandas as pd
 from zepben.evolve import NetworkService, ConnectivityNode, PowerElectronicsConnection, \
-    PowerTransformer, Switch, Connector, Conductor, Feeder, Terminal, ConductingEquipment
+    PowerTransformer, Switch, Connector, Conductor, Feeder, Terminal, ConductingEquipment, EnergyConsumer
 
 
 class EvolveToPandaPowerMap:
@@ -15,6 +15,14 @@ class EvolveToPandaPowerMap:
         self.conductors_to_lines()
         self.head_terminal_to_ext_grid()
         self.power_transformers_to_trafo()
+        self.energy_consumers_to_load()
+
+    def energy_consumers_to_load(self):
+        print(f'Mapping Energy Consumers  to Loads')
+        for ec in self.network_service.objects(EnergyConsumer):
+            ec: EnergyConsumer = ec
+            bus = self.get_bus_indexes_by_cond_eq(ec)[0]
+            pp.create_load(net=self.pp_net, bus=bus, p_mw=ec.p/1000000, q_mvar=ec.q/1000000)
 
     def connectivity_nodes_to_buses(self):
         print(f'Mapping Connectivity Nodes to Buses')
@@ -60,11 +68,17 @@ class EvolveToPandaPowerMap:
         print(f'Mapping Switch to Switch')
         for sw in self.network_service.objects(Switch):
             sw: Switch = sw
-            [from_bus, to_bus] = self.get_bus_indexes_by_cond_eq(sw)
-            if sw.is_open() is False:
-                pp.create_switch(self.pp_net, bus=from_bus, element=to_bus, name=str(sw.mrid), closed=True, et="b")
+            if sw.num_terminals() == 2:
+                [from_bus, to_bus] = self.get_bus_indexes_by_cond_eq(sw)
+                if sw.is_open() is False:
+                    pp.create_switch(self.pp_net, bus=from_bus, element=to_bus, name=str(sw.mrid), closed=True, et="b")
+                else:
+                    pp.create_switch(self.pp_net, bus=from_bus, element=to_bus, name=str(sw.mrid), closed=False, et="b")
+            elif sw.num_terminals() > 3:
+                raise Exception(f'Switches with more than 2 terminals not supported. {sw}')
             else:
-                pp.create_switch(self.pp_net, bus=from_bus, element=to_bus, name=str(sw.mrid), closed=False, et="b")
+                print(f'Switch with only one terminal neglected. {sw}')
+                pass
 
     def conductors_to_lines(self):
         print(f'Mapping Conductors to Lines')
@@ -80,12 +94,13 @@ class EvolveToPandaPowerMap:
                 # High Voltage
                 std_type = "N2XS(FL)2Y 1x120 RM/35 64/110 kV"
             pp.create_line(self.pp_net, from_bus=from_bus, to_bus=to_bus,
-                           length_km=conductor.length,
+                           length_km=conductor.length/1000,
                            std_type=std_type)
 
     def power_transformers_to_trafo(self):
         print(f'Mapping PowerTransformers to Transformers')
         for transformer in self.network_service.objects(PowerTransformer):
+            print(list(transformer.terminals))
             transformer: PowerTransformer = transformer
             if len(list(transformer.ends)):
                 [hv_bus, lv_bus] = self.get_bus_indexes_by_cond_eq(transformer)
@@ -113,6 +128,10 @@ class EvolveToPandaPowerMap:
             for terminal in list(conducting_equipment.terminals):
                 bus_name = terminal.connectivity_node.mrid
                 index_bus.append(self.get_bus_index_by_name(bus_name))
+            return index_bus
+        elif conducting_equipment.num_terminals() == 1:
+            bus_name = conducting_equipment.get_terminal_by_sn(1).connectivity_node.mrid
+            index_bus.append(self.get_bus_index_by_name(bus_name))
             return index_bus
         else:
             raise Exception(f'Number of terminals of the ConductingEquipment is not 2. Check {conducting_equipment}')

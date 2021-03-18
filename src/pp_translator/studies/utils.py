@@ -51,6 +51,7 @@ class SimpleNodeBreakerFeeder:
         # TODO: Replace  createEnergySource with creation of EquivalentInjection
         # Create Feeder
         fdr = Feeder(normal_head_terminal=energy_source.get_terminal_by_sn(1))
+        fdr.mrid = "Grid Connection"
         self.network_service.add(fdr)
         # Create Transformer
         self.network_service.create_two_winding_power_transformer(cn1=cn1, cn2=cn2, name="Trafo", location=loc1,
