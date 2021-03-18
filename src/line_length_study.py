@@ -1,21 +1,23 @@
 import asyncio
 from typing import List
 
-from zepben.evolve import connect_async, NetworkConsumerClient, NetworkService, AcLineSegment
+from zepben.evolve import connect_async, AcLineSegment
 
-from geojson_utils import to_geojson_feature_collection, write_geojson_file
+from utils.geojson_utils import to_geojson_feature_collection, write_geojson_file
+from utils.utils import get_feeder_network
 
 
 async def main():
     feeder_mrid = "CPM3B3"
-    host = "localhost"
+    host = "ewb.zepben.com"
     rpc_port = 9014
 
+    print("Connecting to Server")
     async with connect_async(host=host, rpc_port=rpc_port) as channel:
-        client = NetworkConsumerClient(channel)
-        network = NetworkService()
-        (await client.get_feeder(network, mrid=feeder_mrid)).throw_on_error()
+        print("Requesting Feeder")
+        network = await get_feeder_network(channel, feeder_mrid)
 
+        print("Processing Study")
         long_acls = list()
         for io in network.objects(AcLineSegment):
             # noinspection PyTypeChecker
@@ -23,7 +25,9 @@ async def main():
             if acls.length > 100:
                 long_acls.append(acls)
 
+        print("Writing Study")
         write_line_length_study(long_acls)
+        print("Write Completed")
 
 
 def write_line_length_study(acls: List[AcLineSegment]) -> None:

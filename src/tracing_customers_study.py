@@ -1,10 +1,11 @@
 import asyncio
 from typing import List, Dict
 
-from zepben.evolve import connect_async, NetworkConsumerClient, NetworkService, Traversal, \
+from zepben.evolve import connect_async, Traversal, \
     PowerTransformer, ConductingEquipment, EnergyConsumer, LifoQueue, SinglePhaseKind, PhaseDirection, AcLineSegment
 
-from geojson_utils import to_geojson_feature_collection, write_geojson_file
+from utils.geojson_utils import to_geojson_feature_collection, write_geojson_file
+from utils.utils import get_feeder_network
 
 
 async def main():
@@ -12,11 +13,12 @@ async def main():
     host = "ewb.zepben.com"
     rpc_port = 9014
 
+    print("Connecting to Server")
     async with connect_async(host=host, rpc_port=rpc_port) as channel:
-        client = NetworkConsumerClient(channel)
-        network = NetworkService()
-        (await client.get_feeder(network, mrid=feeder_mrid)).throw_on_error()
+        print("Requesting Feeder")
+        network = await get_feeder_network(channel, feeder_mrid)
 
+        print("Processing Study")
         transformer_to_eq: Dict[str, List[EnergyConsumer]] = {}
         for io in (pt for pt in network.objects(PowerTransformer)):
             pt: PowerTransformer = io
@@ -24,7 +26,10 @@ async def main():
             transformer_to_eq[pt.mrid] = downstream_consumers
 
         eqs = [eq for (k, eq_list) in transformer_to_eq.items() for eq in eq_list]
+
+        print("Writing Study")
         write_tracing_customers_study(eqs, transformer_to_eq)
+        print("Write Completed")
 
 
 def write_tracing_customers_study(pts: List[PowerTransformer],

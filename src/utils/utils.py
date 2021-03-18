@@ -1,4 +1,13 @@
-__all__ = ["get_random_color"]
+__all__ = ["get_random_color", "get_feeder_network"]
+
+from zepben.evolve import NetworkConsumerClient, NetworkService
+
+
+async def get_feeder_network(channel, feeder_mrid):
+    client = NetworkConsumerClient(channel)
+    network = NetworkService()
+    (await client.get_feeder(network, mrid=feeder_mrid)).throw_on_error()
+    return network
 
 
 def get_random_color():

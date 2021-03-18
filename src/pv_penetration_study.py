@@ -1,9 +1,10 @@
 import asyncio
 from typing import List
 
-from zepben.evolve import connect_async, NetworkConsumerClient, NetworkService, PhotoVoltaicUnit
+from zepben.evolve import connect_async, PhotoVoltaicUnit
 
-from geojson_utils import to_geojson_feature_collection, write_geojson_file
+from utils.geojson_utils import to_geojson_feature_collection, write_geojson_file
+from utils.utils import get_feeder_network
 
 
 async def main():
@@ -11,13 +12,18 @@ async def main():
     host = "ewb.zepben.com"
     rpc_port = 9014
 
+    print("Connecting to Server")
     async with connect_async(host=host, rpc_port=rpc_port) as channel:
-        client = NetworkConsumerClient(channel)
-        network = NetworkService()
-        (await client.get_feeder(network, mrid=feeder_mrid)).throw_on_error()
+        print("Requesting Feeder")
+        network = await get_feeder_network(channel, feeder_mrid)
+
+        print("Processing Study")
         # noinspection PyTypeChecker
         pv_list: List[PhotoVoltaicUnit] = [pv for pv in network.objects(PhotoVoltaicUnit)]
+
+        print("Writing Study")
         write_pv_penetration_study(pv_list)
+        print("Write Completed")
 
 
 def write_pv_penetration_study(pvs: List[PhotoVoltaicUnit]) -> None:
