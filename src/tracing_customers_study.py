@@ -17,7 +17,6 @@ async def main():
         network = NetworkService()
         (await client.get_feeder(network, mrid=feeder_mrid)).throw_on_error()
 
-        pts = []
         transformer_to_eq: Dict[str, List[EnergyConsumer]] = {}
         for io in (pt for pt in network.objects(PowerTransformer)):
             pt: PowerTransformer = io
