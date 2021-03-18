@@ -1,7 +1,6 @@
 import asyncio
 
-import pandapower as pp
-from zepben.evolve import connect_async, NetworkConsumerClient, NetworkService
+from zepben.evolve import connect_async, NetworkConsumerClient, NetworkService, IdentifiedObject
 
 
 async def main():
@@ -13,8 +12,7 @@ async def main():
         client = NetworkConsumerClient(channel)
         network = NetworkService()
         result = (await client.get_feeder(network, mrid=feeder_mrid)).throw_on_error()
-
-        pp_network = pp.create_empty_network()
+        objs = list(network.objects(IdentifiedObject))
 
 
 if __name__ == "__main__":
