@@ -1,6 +1,6 @@
 import pandapower as pp
 from zepben.evolve import AcLineSegment, NetworkService, ConnectivityNode, PowerElectronicsConnection, \
-    PowerTransformer, Junction
+    PowerTransformer, Junction, Switch
 
 
 class EvolveToPandaPowerMap:
@@ -9,6 +9,7 @@ class EvolveToPandaPowerMap:
         self.pp_net: pp.pandapowerNet = pp_net
         self.connectivity_nodes_to_buses()
         self.junctions_to_buses()
+        self.switches_to_buses()
 
     def connectivity_nodes_to_buses(self):
         print(f'Mapping Connectivity Nodes to Buses')
@@ -49,6 +50,17 @@ class EvolveToPandaPowerMap:
                 pp.create_bus(self.pp_net, vn_kv=vn_kv, name=str(junction.mrid))
             else:
                 raise Exception(f'None nominal_voltage was found for the junction {junction}')
+
+    def switches_to_buses(self):
+        print(f'Mapping Switches to Buses')
+        for obj in self.evolve_service.objects(Switch):
+            sw: Switch = obj
+            if sw.is_open() is False:
+                if sw.base_voltage is not None:
+                    vn_kv = sw.base_voltage.nominal_voltage
+                    pp.create_bus(self.pp_net, vn_kv=vn_kv, name=str(sw.mrid))
+                else:
+                    raise Exception(f'None nominal_voltage was found for the junction {sw}')
 
     def ac_line_segments_to_lines(self):
         for acls in self.evolve_service.objects(AcLineSegment):

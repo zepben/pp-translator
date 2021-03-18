@@ -2,7 +2,7 @@ import asyncio
 
 import pandapower as pp
 from zepben.evolve import connect_async, NetworkConsumerClient, NetworkService, ConnectivityNode, \
-    Junction, EnergyConsumer
+    Junction, EnergyConsumer, Switch
 
 from pp_translator.mappers.evolve_to_pandapower.mappings import EvolveToPandaPowerMap
 
@@ -29,7 +29,8 @@ async def main():
             print(f' - Connectivity Nodes: {cns_count}')
             junctions_count = len(list(network_service.objects(Junction)))
             print(f' - Junctions: {junctions_count}')
-            print(f' - ConnectivityNodes + Junctions: {junctions_count+cns_count}')
+            print(f' - Switches: {len(list(network_service.objects(Switch)))}')
+            print(f' - ConnectivityNodes + Junctions: {junctions_count + cns_count}')
             print(f' - Energy Consumers: {len(list(network_service.objects(EnergyConsumer)))}')
         else:
             raise Exception(f'Any Feeder was found with mRID {feeder_mrid}')
