@@ -27,7 +27,7 @@ class SimpleNodeBreakerFeeder:
     def _create_network_service(self):
         # Create BaseVoltages
         bv_hv: BaseVoltage = BaseVoltage(mrid="20kV", nominal_voltage=20000, name="20kV")
-        bv_lv: BaseVoltage = BaseVoltage(mrid="415V", nominal_voltage=400, name="415V")
+        bv_lv: BaseVoltage = BaseVoltage(mrid="400V", nominal_voltage=400, name="400V")
         self.network_service.add(bv_hv)
         self.network_service.add(bv_lv)
         # Create Locations for buses
