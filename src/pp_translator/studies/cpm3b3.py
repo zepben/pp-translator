@@ -25,8 +25,11 @@ async def main():
         if network_service.get("CPM3B3").mrid == feeder_mrid:
             print(f'Successful connection to {host_url}, rpc port: {rpc_port}')
             print(f'NetworkService loaded for the Feeder mRID: {feeder_mrid}, with the following data:')
-            print(f' - Connectivity Nodes: {len(list(network_service.objects(ConnectivityNode)))}')
-            print(f' - Junctions: {len(list(network_service.objects(Junction)))}')
+            cns_count = len(list(network_service.objects(ConnectivityNode)))
+            print(f' - Connectivity Nodes: {cns_count}')
+            junctions_count = len(list(network_service.objects(Junction)))
+            print(f' - Junctions: {junctions_count}')
+            print(f' - ConnectivityNodes + Junctions: {junctions_count+cns_count}')
             print(f' - Energy Consumers: {len(list(network_service.objects(EnergyConsumer)))}')
         else:
             raise Exception(f'Any Feeder was found with mRID {feeder_mrid}')
