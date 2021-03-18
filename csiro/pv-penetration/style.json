@@ -1,0 +1,48 @@
+[
+  {
+    "id": "pv-penentration-heatmap",
+    "name": "PV Penetration Heatmap",
+    "type": "heatmap",
+    "maxzoom": 17,
+    "paint": {
+      "heatmap-weight": [
+        "interpolate",
+        ["linear"],
+        ["get", "rated_s"],
+        0,
+        0,
+        30,
+        5
+      ],
+      "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 7, 1, 17, 0.8]
+    }
+  },
+  {
+    "id": "pv-rating-points",
+    "name": "PV Rating Points",
+    "type": "circle",
+    "minzoom": 17,
+    "paint": {
+      "circle-radius": 15,
+      "circle-color": "#ffc73c",
+      "circle-stroke-color": "black",
+      "circle-stroke-width": 1,
+      "circle-opacity": ["interpolate", ["linear"], ["zoom"], 17, 0.3, 18, 1]
+    }
+  },
+  {
+    "id": "pv-rating-labels",
+    "name": "PV Rating Labels",
+    "type": "symbol",
+    "minzoom": 17,
+    "layout": {
+      "text-field": ["format", ["get", "rated_s"], {}, "kW", {}],
+      "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+      "text-size": 12
+    },
+    "paint": {
+      "text-opacity": ["interpolate", ["linear"], ["zoom"], 17, 0.3, 18, 1],
+      "text-color": "black"
+    }
+  }
+]

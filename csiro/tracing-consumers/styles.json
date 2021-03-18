@@ -1,0 +1,74 @@
+[
+  {
+    "id": "downstream-acls",
+    "name": "Downstream ACLS",
+    "type": "line",
+    "paint": {
+      "line-color": "rgb(210,2,29)",
+      "line-width": 2
+    }
+  },
+  {
+    "id": "downstream-acls-label",
+    "name": "ACLS Current Label",
+    "type": "symbol",
+    "layout": {
+      "symbol-placement": "line",
+      "text-field": ["get", "name"],
+      "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+      "text-size": 15
+    },
+    "paint": {
+      "text-color": "black",
+      "text-halo-blur": 10,
+      "text-halo-width": 10,
+      "text-halo-color": "white"
+    }
+  },
+  {
+    "id": "energy-consumer-names",
+    "name": "Energy Consumer Names",
+    "type": "symbol",
+    "minzoom": 12,
+    "layout": {
+      "text-field": ["get", "name"],
+      "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+      "text-size": 12
+    },
+    "paint": {
+      "text-color": "rgb(255,0,0)",
+      "text-halo-blur": 10,
+      "text-halo-width": 10,
+      "text-halo-color": "white"
+    },
+    "filter" : ["==", ["get", "type"], "ec"]
+  },
+  {
+    "id": "dist-transformers",
+    "name": "Dist Transformers",
+    "type": "circle",
+    "minzoom": 12,
+    "paint": {
+      "circle-radius": 15,
+      "circle-color": "rgb(0,200,2)",
+      "circle-stroke-color": "white",
+      "circle-stroke-width": 1
+    },
+    "filter" : ["==", ["get", "type"], "pt"]
+  },
+  {
+    "id": "consumer-count-label",
+    "name": "Consumer Count",
+    "type": "symbol",
+    "minzoom": 12,
+    "layout": {
+      "text-field": ["get", "consumer_count"],
+      "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+      "text-size": 12
+    },
+    "paint": {
+      "text-color": "white"
+    },
+    "filter" : ["==", ["get", "type"], "pt"]
+  }
+]
