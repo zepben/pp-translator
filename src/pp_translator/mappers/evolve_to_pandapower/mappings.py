@@ -1,12 +1,12 @@
 import pandapower as pp
 import pandas as pd
 from zepben.evolve import NetworkService, ConnectivityNode, PowerElectronicsConnection, \
-    PowerTransformer, Switch, Connector, Conductor
+    PowerTransformer, Switch, Connector, Conductor, Terminal
 
 
 class EvolveToPandaPowerMap:
-    def __init__(self, evolve_service: NetworkService, pp_net: pp.pandapowerNet):
-        self.evolve_service: NetworkService = evolve_service
+    def __init__(self, network_service: NetworkService, pp_net: pp.pandapowerNet):
+        self.network_service: NetworkService = network_service
         self.pp_net: pp.pandapowerNet = pp_net
         self.connectivity_nodes_to_buses()
         self.connectors_to_buses()
@@ -15,7 +15,7 @@ class EvolveToPandaPowerMap:
 
     def connectivity_nodes_to_buses(self):
         print(f'Mapping Connectivity Nodes to Buses')
-        for cn in self.evolve_service.objects(ConnectivityNode):
+        for cn in self.network_service.objects(ConnectivityNode):
             cn: ConnectivityNode = cn
             vn_kv = None
             for terminal in list(cn.terminals):
@@ -45,7 +45,7 @@ class EvolveToPandaPowerMap:
 
     def connectors_to_buses(self):
         print(f'Mapping Connectors to Buses')
-        for connector in self.evolve_service.objects(Connector):
+        for connector in self.network_service.objects(Connector):
             connector: Connector = connector
             if connector.base_voltage is not None:
                 vn_kv = connector.base_voltage.nominal_voltage
@@ -55,7 +55,7 @@ class EvolveToPandaPowerMap:
 
     def switches_to_buses(self):
         print(f'Mapping closed Switches to Buses')
-        for sw in self.evolve_service.objects(Switch):
+        for sw in self.network_service.objects(Switch):
             sw: Switch = sw
             if sw.is_open() is False:
                 if sw.base_voltage is not None:
@@ -65,11 +65,39 @@ class EvolveToPandaPowerMap:
                     raise Exception(f'None nominal_voltage was found for the junction {sw}')
 
     def conductors_to_lines(self):
-        df = pd.DataFrame(self.pp_net.bus)
-        print(df['name'])
-        for conductor in self.evolve_service.objects(Conductor):
+        print(f'Mapping Conductors to Lines')
+        for conductor in self.network_service.objects(Conductor):
             conductor: Conductor = conductor
-            conductor.get_terminal_by_sn(1)
-            # pp.create_line(self.pp_net, from_bus=1, to_bus=1)  # TODO: add input busses
+            [from_bus, to_bus] = self.get_bus_indexes_by_conductor(conductor)
+            if conductor.base_voltage.nominal_voltage < 1000:
+                std_type = "NAYY 4x50 SE"
+            elif conductor.base_voltage.nominal_voltage < 12000:
+                # Medium Voltage
+                std_type = "NA2XS2Y 1x95 RM/25 12/20 kV"
+            else:
+                # High Voltage
+                std_type = "N2XS(FL)2Y 1x120 RM/35 64/110 kV"
+            pp.create_line(self.pp_net, from_bus=from_bus, to_bus=to_bus,
+                           length_km=conductor.length * 1000,
+                           std_type=std_type)
 
+    def get_bus_indexes_by_conductor(self, conductor: Conductor):
+        index_bus = []
+        if conductor.num_terminals() == 2:
+            for terminal in list(conductor.terminals):
+                bus_name = terminal.connectivity_node.mrid
+                index_bus.append(self.get_bus_index_by_name(bus_name))
+            return index_bus
+        else:
+            raise Exception(f'Number of terminals of the Conductor is not 2')
 
+    def get_bus_index_by_name(self, bus_name):
+        bus_df: pd.DataFrame = self.pp_net.bus
+        index = bus_df.index
+        condition = bus_df['name'] == bus_name
+        list_buses = bus_df[condition].name.values
+        if len(list_buses) == 1:
+            bus_index = index[condition].values[0]
+        else:
+            raise Exception(f'Number of Buses with name: {bus_name} is more than 1')
+        return int(bus_index)
