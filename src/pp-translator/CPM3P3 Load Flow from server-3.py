@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 from statistics import mean
+from typing import Union, List, Tuple
 
 import geopandas
 import numpy as np
@@ -8,10 +9,12 @@ import pandapower as pp
 import pandas as pd
 import zepben.evolve
 from pandas import DataFrame
-from shapely.geometry import LineString
+from shapely.geometry.base import BaseGeometry
+from shapely.speedups._speedups import LineString, Point
 from zepben.evolve import NetworkService, Feeder, EnergySource, EnergySourcePhase, ConnectivityNode, \
     BaseVoltage, AcLineSegment, EnergyConsumer, \
-    Disconnector, Breaker, PowerTransformer, Fuse, Recloser, EnergyConsumerPhase, ConductingEquipment, Equipment
+    Disconnector, Breaker, PowerTransformer, Fuse, Recloser, EnergyConsumerPhase, ConductingEquipment, Equipment, \
+    Location
 from zepben.evolve import connect_async, NetworkConsumerClient
 
 
@@ -609,7 +612,8 @@ async def main():
                 "ConductingEquipment_mRID": term_resultsX.at[idx, 'ConductingEquipment_mRID']
             }
 
-        generate_overloaded_lines_geojson(service, term_resultsX)
+        generate_current_utilisation_for_ac_lines_geojson(service, term_resultsX)
+        generate_voltage_utilisation_geojson(service, term_resultsX)
 
         term_resultsX = term_resultsX.drop(
             ['name_x', 'va_degree', 'vn_kv', 'TopologicalNode_mRID', 'ConductingEquipment_mRID', 'p', 'q', 'name_y',
@@ -619,15 +623,15 @@ async def main():
         gdf10.to_file('Output.geojson', driver="GeoJSON")
 
 
-def generate_overloaded_lines_geojson(service: NetworkService, dataframe_results: DataFrame):
+def generate_current_utilisation_for_ac_lines_geojson(service: NetworkService, dataframe_results: DataFrame):
     df = DataFrame()
-    # d = {'col1': ['name1', 'name2'], 'geometry': [Point(1, 2), Point(2, 1)]}
 
     for io in service.objects(AcLineSegment):
         # noinspection PyTypeChecker
         acls: AcLineSegment = io
-        current_pu = _get_current_pu(acls, dataframe_results)
+        current_pu = _get_current_utilisation(acls, dataframe_results)
         p = _get_avg_p(acls, dataframe_results)
+        geometry, g_1, g_2 = geometries_from_location(acls.location)
 
         if current_pu is not None:
             row = {
@@ -636,34 +640,70 @@ def generate_overloaded_lines_geojson(service: NetworkService, dataframe_results
                     "current_pu": current_pu,
                     'p': p,
                 },
-                "geometry": LineString([(point[1].x_position, point[1].y_position) for point in acls.location.points])
+                "geometry": geometry
             }
             df = df.append(row, ignore_index=True)
 
-    write_to_geojson_file(df, "overloaded_ac_lines.json")
+    write_to_geojson_file(df, "current_utilisation_for_ac_lines.json")
 
 
-def write_to_geojson_file(dataframe: DataFrame, filename: str):
-    geo_dataframe = geopandas.GeoDataFrame(
-        dataframe,
-        crs="EPSG:4326",
-        # geometry=geopandas.points_from_xy(dataframe.x, dataframe.y)
-    )
-    geo_dataframe.to_json()
-    geo_dataframe.to_file(filename, driver="GeoJSON")
+def generate_voltage_utilisation_geojson(service: NetworkService, dataframe_results: DataFrame):
+    df = DataFrame()
+
+    for io in service.objects(AcLineSegment):
+        # noinspection PyTypeChecker
+        ce: ConductingEquipment = io
+        voltage_utilisations = _get_voltage_utilisation(ce, dataframe_results)
+        acl_geometry, t1_geometry, t2_geometry = geometries_from_location(ce.location)
+
+        if voltage_utilisations is not None and isinstance(acl_geometry, LineString):
+            t1_row = {
+                'id': f"{ce.mrid}-t1",
+                "SvVoltage": {
+                    "voltage_utilisation": voltage_utilisations[0],
+                },
+                "geometry": t1_geometry
+            }
+            t2_row = {
+                'id': f"{ce.mrid}-t2",
+                "SvVoltage": {
+                    "voltage_utilisation": voltage_utilisations[1],
+                },
+                "geometry": t2_geometry
+            }
+            acls_row = {
+                'id': ce.mrid,
+                "SvVoltage": {
+                    "voltage_utilisation": mean(voltage_utilisations),
+                },
+                "geometry": acl_geometry
+            }
+            df = df.append(acls_row, ignore_index=True)
+            df = df.append(t1_row, ignore_index=True)
+            df = df.append(t2_row, ignore_index=True)
+
+    write_to_geojson_file(df, "voltage_utilisation.json")
 
 
-def _get_voltage_deviation(service: NetworkService, dataframe: DataFrame, idx: int):
-    voltage = dataframe.at[idx, 'vn_kv'] / 1000
-    cnn = service.get(dataframe.at[idx, 'TopologicalNode_mRID'])
-    if cnn is not None and voltage is not None:
-        base_voltage = search_voltage(cnn)
-        return round((voltage / base_voltage) - 1, 2)
+def _get_voltage_utilisation(ce: ConductingEquipment, dataframe: DataFrame) -> Union[List[float], None]:
+    voltages = [sv_v["v"] for sv_v in
+                list(dataframe.loc[dataframe['ConductingEquipment_mRID'] == ce.mrid, "SvVoltage"])]
+    base_voltage = ce.base_voltage.nominal_voltage * 1000
+
+    if len(voltages) > 0 and base_voltage is not None:
+        return [truncate_decimal_to_2_decimals(v / base_voltage) for v in voltages]
     else:
-        return 0
+        return None
 
 
-def _get_current_pu(acls: AcLineSegment, dataframe: DataFrame):
+def truncate_decimal_to_2_decimals(num: float) -> float:
+    return int(num * 100) / 100.0
+    # return float(decimal.Decimal(num).quantize(decimal.Decimal('.001'), rounding=decimal.ROUND_DOWN))
+    # before_dec, after_dec = str(num).split('.')
+    # return float('.'.join((before_dec, after_dec[0:2])))
+
+
+def _get_current_utilisation(acls: AcLineSegment, dataframe: DataFrame):
     ps = list(dataframe.loc[dataframe['ConductingEquipment_mRID'] == acls.mrid, "p"])
 
     if len(ps) > 0:
@@ -690,6 +730,29 @@ def _get_avg_p(acls: AcLineSegment, dataframe: DataFrame):
     else:
         print(f"AcLineSegment {acls.mrid} has no p values")
         return None
+
+
+def geometries_from_location(location: Location) -> Union[Tuple[BaseGeometry, BaseGeometry, BaseGeometry], None]:
+    points = list(location.points)
+
+    if len(points) > 1:
+        return (
+            LineString([(point[1].x_position, point[1].y_position) for point in points]),
+            Point(points[0][1].x_position, points[0][1].y_position),
+            Point(points[-1][1].x_position, points[-1][1].y_position)
+        )
+    else:
+        return None
+
+
+def write_to_geojson_file(dataframe: DataFrame, filename: str):
+    geo_dataframe = geopandas.GeoDataFrame(
+        dataframe,
+        crs="EPSG:4326",
+        # geometry=geopandas.points_from_xy(dataframe.x, dataframe.y)
+    )
+    geo_dataframe.to_json()
+    geo_dataframe.to_file(filename, driver="GeoJSON")
 
 
 if __name__ == "__main__":
