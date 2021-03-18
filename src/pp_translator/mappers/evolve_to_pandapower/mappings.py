@@ -1,6 +1,6 @@
 import pandapower as pp
 from zepben.evolve import AcLineSegment, NetworkService, ConnectivityNode, PowerElectronicsConnection, \
-    PowerTransformer, Junction, Switch
+    PowerTransformer, Junction, Switch, Connector
 
 
 class EvolveToPandaPowerMap:
@@ -8,7 +8,7 @@ class EvolveToPandaPowerMap:
         self.evolve_service: NetworkService = evolve_service
         self.pp_net: pp.pandapowerNet = pp_net
         self.connectivity_nodes_to_buses()
-        self.junctions_to_buses()
+        self.connectors_to_buses()
         self.switches_to_buses()
 
     def connectivity_nodes_to_buses(self):
@@ -41,18 +41,18 @@ class EvolveToPandaPowerMap:
                                         f'connected to the Connectivity Node: {cn}')
             pp.create_bus(self.pp_net, vn_kv=vn_kv, name=str(cn.mrid))
 
-    def junctions_to_buses(self):
-        print(f'Mapping Junctions to Buses')
-        for obj in self.evolve_service.objects(Junction):
-            junction: Junction = obj
-            if junction.base_voltage is not None:
-                vn_kv = junction.base_voltage.nominal_voltage
-                pp.create_bus(self.pp_net, vn_kv=vn_kv, name=str(junction.mrid))
+    def connectors_to_buses(self):
+        print(f'Mapping Connectors to Buses')
+        for obj in self.evolve_service.objects(Connector):
+            connector: Connector = obj
+            if connector.base_voltage is not None:
+                vn_kv = connector.base_voltage.nominal_voltage
+                pp.create_bus(self.pp_net, vn_kv=vn_kv, name=str(connector.mrid))
             else:
-                raise Exception(f'None nominal_voltage was found for the junction {junction}')
+                raise Exception(f'None nominal_voltage was found for the junction {connector}')
 
     def switches_to_buses(self):
-        print(f'Mapping Switches to Buses')
+        print(f'Mapping closed Switches to Buses')
         for obj in self.evolve_service.objects(Switch):
             sw: Switch = obj
             if sw.is_open() is False:
