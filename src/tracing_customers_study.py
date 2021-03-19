@@ -9,13 +9,13 @@ from utils.utils import get_feeder_network
 
 
 async def main():
-    feeder_mrid = "CPM3B3"
     host = "ewb.zepben.com"
     rpc_port = 9014
 
     print("Connecting to Server")
     async with connect_async(host=host, rpc_port=rpc_port) as channel:
         print("Requesting Feeder")
+        feeder_mrid = "CPM3B3"
         network = await get_feeder_network(channel, feeder_mrid)
 
         print("Processing Study")
@@ -25,10 +25,10 @@ async def main():
             downstream_consumers = await get_downstream_eq(pt)
             transformer_to_eq[pt.mrid] = downstream_consumers
 
-        eqs = [eq for (k, eq_list) in transformer_to_eq.items() for eq in eq_list]
+        all_traced_equipment = [eq for (k, eq_list) in transformer_to_eq.items() for eq in eq_list]
 
         print("Writing Study")
-        write_tracing_customers_study(eqs, transformer_to_eq)
+        write_tracing_customers_study(all_traced_equipment, transformer_to_eq)
         print("Write Completed")
 
 

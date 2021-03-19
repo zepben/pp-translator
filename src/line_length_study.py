@@ -8,13 +8,13 @@ from utils.utils import get_feeder_network
 
 
 async def main():
-    feeder_mrid = "CPM3B3"
     host = "ewb.zepben.com"
     rpc_port = 9014
 
     print("Connecting to Server")
     async with connect_async(host=host, rpc_port=rpc_port) as channel:
         print("Requesting Feeder")
+        feeder_mrid = "CPM3B3"
         network = await get_feeder_network(channel, feeder_mrid)
 
         print("Processing Study")
