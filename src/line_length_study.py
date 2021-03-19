@@ -8,7 +8,7 @@ from utils.utils import get_feeder_network
 
 
 async def main():
-    host = "ewb.zepben.com"
+    host = "localhost"
     rpc_port = 9014
 
     print("Connecting to Server")
