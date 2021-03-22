@@ -19,6 +19,9 @@ def create_pp_bus(
         inner_terminals: FrozenSet[Terminal],
         node_breaker_model: NetworkService
 ) -> int:
+    if base_voltage is None:
+        return None
+
     return pp.create_bus(bus_branch_model, vn_kv=base_voltage / 1000,
                          name=f"bus_{_create_id_from_terminals(border_terminals)}")
 
