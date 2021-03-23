@@ -94,7 +94,7 @@ def create_pp_transformer_type(bus_branch_model: pp.pandapowerNet, pt: PowerTran
 
 def create_pp_grid_connection(bus_branch_model: pp.pandapowerNet, es: EnergySource, bus: int,
                               node_breaker_model: NetworkService):
-    pp.create_ext_grid(bus_branch_model, bus=bus, vm_pu=1.02, name=es.name)
+    pp.create_ext_grid(bus_branch_model, bus=bus, vm_pu=1, name=es.name)
 
 
 def create_pp_load(
@@ -105,7 +105,7 @@ def create_pp_load(
 ):
     # TODO: 1kW for p and 1kVA for q given that there's no load values for energy consumers.
     # pp.create_load(bus_branch_model, bus=bus, p_mw=ec.p / 1000000, q_mvar=ec.q / 1000000, name=ec.name)
-    pp.create_load(bus_branch_model, bus=bus, p_mw=1000 / 1000000, q_mvar=1000 / 1000000, name=ec.name)
+    pp.create_load(bus_branch_model, bus=bus, p_mw=2000 / 1000000, q_mvar=0 / 1000000, name=ec.name)
 
 
 def _create_id_from_terminals(ts: Iterable[Terminal]):

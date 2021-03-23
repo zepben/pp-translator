@@ -5,7 +5,7 @@ import pandapower as pp
 from geojson import Feature, LineString, Point, FeatureCollection
 from zepben.evolve import connect_async, AcLineSegment, Feeder, NetworkService, EnergySource, \
     Terminal, PhaseCode, PhaseDirection, SinglePhaseKind, ConductingEquipment, PowerTransformer, \
-    create_bus_branch_model, CreationResult, PowerElectronicsConnection, PowerElectronicsUnit
+    create_bus_branch_model, PowerElectronicsConnection, PowerElectronicsUnit
 
 from pp_creators.creators import create_pp_bus, create_pp_line, create_pp_line_type, get_line_type_id, \
     create_pp_transformer, create_pp_transformer_type, get_transformer_type_id, create_pp_grid_connection, \
@@ -41,18 +41,20 @@ async def main():
             create_pp_load
         )
 
-        write_bus_branch_to_geojson(result)
+        # Run Diagnostics
+        pp.diagnostic(result.bus_branch_model)
+
         # Run Load Flow
-        diagnostic = pp.diagnostic(result.bus_branch_model)
-        print(diagnostic)
-
         pp.runpp(result.bus_branch_model)
-        pp_network = result.bus_branch_model
+        write_load_flow_result_to_geojson(result.bus_branch_model)
 
 
-def write_bus_branch_to_geojson(result: CreationResult):
-    bus_geodata: Dict = result.bus_branch_model.bus_geodata.to_dict()
-    line_geodata = result.bus_branch_model.line_geodata.to_dict()
+def write_load_flow_result_to_geojson(result: pp.pandapowerNet):
+    bus_geodata: Dict = result.bus_geodata.to_dict()
+    bus_results = result.res_bus.to_dict()
+
+    line_geodata = result.line_geodata.to_dict()
+    line_results = result.res_line.to_dict()
 
     bus_geojson = []
     line_geojson = []
@@ -60,11 +62,30 @@ def write_bus_branch_to_geojson(result: CreationResult):
     for idx in range(len(bus_geodata["x"])):
         x = bus_geodata["x"][idx]
         y = bus_geodata["y"][idx]
-        bus_geojson.append(Feature(idx, Point((x, y)), {"name": idx, "type": "bus"}))
+        vm_pu = bus_results["vm_pu"][idx]
+        bus_geojson.append(
+            Feature(
+                idx,
+                Point((x, y)),
+                {
+                    "name": idx,
+                    "type": "bus",
+                    "vm_pu": decimal(vm_pu)
+                }))
 
     for idx in range(len(line_geodata["coords"])):
         coords = line_geodata["coords"][idx]
-        line_geojson.append(Feature(idx, LineString(coords), {"name": idx}))
+        p_from_kw = line_results["p_from_mw"][idx] * 1000
+        p_to_kw = line_results["p_to_mw"][idx] * 1000
+        line_geojson.append(
+            Feature(
+                idx,
+                LineString(coords),
+                {
+                    "name": idx,
+                    "p_from_kw": decimal(p_from_kw),
+                    "p_to_kw": decimal(p_to_kw)
+                }))
 
     features = []
     for bus_f in bus_geojson:
@@ -74,7 +95,11 @@ def write_bus_branch_to_geojson(result: CreationResult):
         features.append(line_f)
 
     feature_collection = FeatureCollection(features)
-    write_geojson_file("./bus_branch_model.json", feature_collection)
+    write_geojson_file("./load_flow_result.json", feature_collection)
+
+
+def decimal(f: float):
+    return "{:.2f}".format(f)
 
 
 def new_create_pp_bus(bus_map: Dict):
