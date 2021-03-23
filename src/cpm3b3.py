@@ -145,6 +145,10 @@ def _remove_garbage(network: NetworkService, feeder: Feeder):
         for t in pec.terminals:
             for other_t in t.connectivity_node.terminals:
                 other_t.conducting_equipment.remove_terminal(other_t)
+                try:
+                    network.remove(other_t.connectivity_node)
+                except:
+                    pass
                 network.remove(other_t)
         network.remove(pec)
 
