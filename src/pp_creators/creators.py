@@ -4,11 +4,11 @@
 #  License, v. 2.0. If a copy of the MPL was not distributed with this
 #  file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-from typing import FrozenSet, Tuple, Iterable
+from typing import FrozenSet, Tuple, Iterable, List
 
 import pandapower as pp
 from zepben.evolve import Terminal, NetworkService, AcLineSegment, PerLengthSequenceImpedance, WireInfo, \
-    PowerTransformer, EnergySource, EnergyConsumer, ConductingEquipment
+    PowerTransformer, EnergySource, EnergyConsumer, ConductingEquipment, Location
 
 
 def create_pp_bus(
@@ -19,11 +19,17 @@ def create_pp_bus(
         inner_terminals: FrozenSet[Terminal],
         node_breaker_model: NetworkService
 ) -> int:
-    if base_voltage is None:
-        return None
+    locations: List[Location] = [t.conducting_equipment.location for t in border_terminals
+                                 if t.conducting_equipment.location is not None]
 
-    return pp.create_bus(bus_branch_model, vn_kv=base_voltage / 1000,
-                         name=f"bus_{_create_id_from_terminals(border_terminals)}")
+    coords = [(p.x_position, p.y_position) for location in locations for p in location.points]
+
+    return pp.create_bus(
+        bus_branch_model,
+        vn_kv=base_voltage / 1000,
+        name=f"bus_{_create_id_from_terminals(border_terminals)}",
+        geodata=coords[0]
+    )
 
 
 def create_pp_line(
@@ -36,25 +42,39 @@ def create_pp_line(
         inner_terminals: FrozenSet[Terminal],
         node_breaker_model: NetworkService
 ):
+    locations: List[Location] = [acls.location for acls in common_lines]
+    coords = [(p.x_position, p.y_position) for location in locations for p in location.points]
+    length = length / 1000
+
     pp.create_line(
         bus_branch_model,
         from_bus=line_busses[0],
         to_bus=line_busses[1],
-        length_km=length / 1000,
+        length_km=0.001 if length == 0 else length,
         name=f"line_{_create_id_from_terminals(border_terminals)}",
-        std_type=line_type
+        std_type=line_type,
+        geodata=coords
     )
 
 
-def get_line_type_id(per_length_sequence_impedance: PerLengthSequenceImpedance, wire_info: WireInfo) -> str:
+def get_line_type_id(
+        per_length_sequence_impedance: PerLengthSequenceImpedance,
+        wire_info: WireInfo,
+        voltage: int
+) -> str:
     # TODO: This needs to be implemented properly to generate a unique key for each line type
-    return "NAYY 4x50 SE"
+    if voltage < 1000:
+        return "NAYY 4x50 SE"
+    elif voltage < 12000:
+        return "NA2XS2Y 1x95 RM/25 12/20 kV"
+    else:
+        return "N2XS(FL)2Y 1x120 RM/35 64/110 kV"
 
 
 def create_pp_line_type(bus_branch_model: pp.pandapowerNet, per_length_sequence_impedance: PerLengthSequenceImpedance,
-                        wire_info: WireInfo) -> str:
+                        wire_info: WireInfo, voltage: int) -> str:
     # TODO: This needs to be implemented properly to create an std_type for the line
-    return get_line_type_id(per_length_sequence_impedance, wire_info)
+    return get_line_type_id(per_length_sequence_impedance, wire_info, voltage)
 
 
 def create_pp_transformer(bus_branch_model: pp.pandapowerNet, pt: PowerTransformer, busses: Tuple[int, int],
@@ -64,7 +84,7 @@ def create_pp_transformer(bus_branch_model: pp.pandapowerNet, pt: PowerTransform
 
 def get_transformer_type_id(pt: PowerTransformer) -> str:
     # TODO: This needs to be implemented properly to generate a unique key for each transformer type
-    return "0.4 MVA 20/0.4 kV"
+    return "0.25 MVA 10/0.4 kV"
 
 
 def create_pp_transformer_type(bus_branch_model: pp.pandapowerNet, pt: PowerTransformer) -> str:

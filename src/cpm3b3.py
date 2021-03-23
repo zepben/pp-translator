@@ -1,9 +1,11 @@
 import asyncio
-from typing import List
+from typing import List, Dict, FrozenSet
 
 import pandapower as pp
+from geojson import Feature, LineString, Point, FeatureCollection
 from zepben.evolve import connect_async, AcLineSegment, Feeder, NetworkService, EnergySource, \
-    Terminal, PhaseCode, PhaseDirection, SinglePhaseKind, ConductingEquipment, PowerTransformer, create_bus_branch_model
+    Terminal, PhaseCode, PhaseDirection, SinglePhaseKind, ConductingEquipment, PowerTransformer, \
+    create_bus_branch_model, CreationResult, PowerElectronicsConnection, PowerElectronicsUnit
 
 from pp_creators.creators import create_pp_bus, create_pp_line, create_pp_line_type, get_line_type_id, \
     create_pp_transformer, create_pp_transformer_type, get_transformer_type_id, create_pp_grid_connection, \
@@ -21,40 +23,14 @@ async def main():
         print("Requesting Feeder")
         feeder_mrid = "CPM3B3"
         network = await get_feeder_network(channel, feeder_mrid)
-
-        stuff_to_remove = []
-        for f in network.objects(Feeder):
-            if f.mrid != feeder_mrid:
-                for eq in f.equipment:
-                    for t in eq.terminals:
-                        if t.connectivity_node is not None:
-                            stuff_to_remove.append(t.connectivity_node)
-                        stuff_to_remove.append(t)
-                    stuff_to_remove.append(eq)
-                stuff_to_remove.append(f)
-
-        for s in stuff_to_remove:
-            network.remove(s)
-
-        bad_transformers = []
-        for pt in network.objects(PowerTransformer):
-            if len(list(pt.terminals)) != 2:
-                bad_transformers.append(pt)
-
-        for pt in bad_transformers:
-            network.remove(pt)
-            for t in pt.terminals:
-                network.remove(t)
-
-        _add_energy_source(network, network.get("CPM3B3"))
-
-        # write_load_flow_study([eq for eq in network.objects(ConductingEquipment)])
+        _remove_garbage(network, network.get("CPM3B3"))
 
         print("Processing Study")
+        bus_map = {}
         result = create_bus_branch_model(
             network,
             pp.create_empty_network,
-            create_pp_bus,
+            new_create_pp_bus(bus_map),
             create_pp_line,
             create_pp_line_type,
             get_line_type_id,
@@ -65,12 +41,66 @@ async def main():
             create_pp_load
         )
 
+        write_bus_branch_to_geojson(result)
         # Run Load Flow
         diagnostic = pp.diagnostic(result.bus_branch_model)
         print(diagnostic)
 
         pp.runpp(result.bus_branch_model)
         pp_network = result.bus_branch_model
+
+
+def write_bus_branch_to_geojson(result: CreationResult):
+    bus_geodata: Dict = result.bus_branch_model.bus_geodata.to_dict()
+    line_geodata = result.bus_branch_model.line_geodata.to_dict()
+
+    bus_geojson = []
+    line_geojson = []
+
+    for idx in range(len(bus_geodata["x"])):
+        x = bus_geodata["x"][idx]
+        y = bus_geodata["y"][idx]
+        bus_geojson.append(Feature(idx, Point((x, y)), {"name": idx, "type": "bus"}))
+
+    for idx in range(len(line_geodata["coords"])):
+        coords = line_geodata["coords"][idx]
+        line_geojson.append(Feature(idx, LineString(coords), {"name": idx}))
+
+    features = []
+    for bus_f in bus_geojson:
+        features.append(bus_f)
+
+    for line_f in line_geojson:
+        features.append(line_f)
+
+    feature_collection = FeatureCollection(features)
+    write_geojson_file("./bus_branch_model.json", feature_collection)
+
+
+def new_create_pp_bus(bus_map: Dict):
+    def wrapper(bus_branch_model: pp.pandapowerNet,
+                base_voltage: int,
+                negligible_impedance_equipment: FrozenSet[ConductingEquipment],
+                border_terminals: FrozenSet[Terminal],
+                inner_terminals: FrozenSet[Terminal],
+                node_breaker_model: NetworkService):
+        pp_bus = create_pp_bus(bus_branch_model,
+                               base_voltage,
+                               negligible_impedance_equipment,
+                               border_terminals,
+                               inner_terminals, node_breaker_model)
+        bus_map[pp_bus] = [t.conducting_equipment.mrid for t in border_terminals
+                           if t.conducting_equipment is not None][0]
+        return pp_bus
+
+    return wrapper
+
+
+def new_create_pp_line(line_map: Dict):
+    def wrapper():
+        pass
+
+    return wrapper()
 
 
 def write_load_flow_study(pts: List[ConductingEquipment]) -> None:
@@ -82,7 +112,49 @@ def write_load_flow_study(pts: List[ConductingEquipment]) -> None:
     write_geojson_file("./feeder_for_load_flow.json", feature_collection)
 
 
-def _add_energy_source(network: NetworkService, feeder: Feeder):
+def _remove_garbage(network: NetworkService, feeder: Feeder):
+    stuff_to_remove = []
+    for f in network.objects(Feeder):
+        if f.mrid != feeder.mrid:
+            for eq in f.equipment:
+                for t in eq.terminals:
+                    if t.connectivity_node is not None:
+                        stuff_to_remove.append(t.connectivity_node)
+                    stuff_to_remove.append(t)
+                stuff_to_remove.append(eq)
+            stuff_to_remove.append(f)
+
+    for s in stuff_to_remove:
+        network.remove(s)
+
+    bad_transformers = []
+    for pt in network.objects(PowerTransformer):
+        if len(list(pt.terminals)) != 2:
+            bad_transformers.append(pt)
+
+    for pt in bad_transformers:
+        network.remove(pt)
+        for t in pt.terminals:
+            network.remove(t)
+
+    power_electronics_connections = []
+    for pec in network.objects(PowerElectronicsConnection):
+        power_electronics_connections.append(pec)
+
+    for pec in power_electronics_connections:
+        for t in pec.terminals:
+            for other_t in t.connectivity_node.terminals:
+                other_t.conducting_equipment.remove_terminal(other_t)
+                network.remove(other_t)
+        network.remove(pec)
+
+    power_electronics_units = []
+    for peu in network.objects(PowerElectronicsUnit):
+        power_electronics_units.append(peu)
+
+    for peu in power_electronics_units:
+        network.remove(peu)
+
     # Add Energy Source
     es = EnergySource(mrid=f"{feeder.mrid}_es")
     es.base_voltage = feeder.normal_head_terminal.conducting_equipment.base_voltage
