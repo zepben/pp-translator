@@ -19,11 +19,11 @@ async def main():
         network = await get_feeder_network(channel, feeder_mrid)
 
         print("Processing Study")
-        transformer_to_eq: Dict[str, List[EnergyConsumer]] = {}
+        transformer_to_eq: Dict[str, List[ConductingEquipment]] = {}
         for io in (pt for pt in network.objects(PowerTransformer)):
             pt: PowerTransformer = io
-            downstream_consumers = await get_downstream_eq(pt)
-            transformer_to_eq[pt.mrid] = downstream_consumers
+            downstream_equipment = await get_downstream_eq(pt)
+            transformer_to_eq[pt.mrid] = downstream_equipment
 
         all_traced_equipment = [eq for (k, eq_list) in transformer_to_eq.items() for eq in eq_list]
 
@@ -33,7 +33,7 @@ async def main():
 
 
 def write_tracing_customers_study(pts: List[PowerTransformer],
-                                  transformer_to_consumers: Dict[str, List[EnergyConsumer]]) -> None:
+                                  transformer_to_consumers: Dict[str, List[ConductingEquipment]]) -> None:
     class_to_properties = {
         EnergyConsumer: {"name": lambda ec: ec.name, "type": lambda x: "ec"},
         PowerTransformer: {"consumer_count": consumer_count_from(transformer_to_consumers), "type": lambda x: "pt"},
