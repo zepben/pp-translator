@@ -8,7 +8,20 @@ from typing import FrozenSet, Tuple, Iterable, List
 
 import pandapower as pp
 from zepben.evolve import Terminal, NetworkService, AcLineSegment, PerLengthSequenceImpedance, WireInfo, \
-    PowerTransformer, EnergySource, EnergyConsumer, ConductingEquipment, Location
+    PowerTransformer, EnergySource, EnergyConsumer, ConductingEquipment, Location, PowerElectronicsConnection
+
+__all__ = [
+    "create_pp_bus",
+    "create_pp_line",
+    "get_line_type_id",
+    "create_pp_line_type",
+    "create_pp_transformer",
+    "get_transformer_type_id",
+    "create_pp_transformer_type",
+    "create_pp_grid_connection",
+    "create_pp_load_from_energy_consumer",
+    "create_pp_load_from_power_electronics_connection"
+]
 
 
 def create_pp_bus(
@@ -45,6 +58,17 @@ def create_pp_line(
     locations: List[Location] = [acls.location for acls in common_lines]
     coords = [(p.x_position, p.y_position) for location in locations for p in location.points]
     length = length / 1000
+
+    # connected_equipment = [o_t.conducting_equipment
+    #                        for t in border_terminals
+    #                        for o_t in t.connectivity_node.terminals if o_t != t]
+    # connected_pec_or_ec = list(filter(
+    #     lambda eq: isinstance(eq, PowerElectronicsConnection) or isinstance(eq, EnergyConsumer),
+    #     connected_equipment
+    # ))
+    #
+    # if len(connected_pec_or_ec) > 0:
+    #     print("")
 
     pp.create_line(
         bus_branch_model,
@@ -84,12 +108,36 @@ def create_pp_transformer(bus_branch_model: pp.pandapowerNet, pt: PowerTransform
 
 def get_transformer_type_id(pt: PowerTransformer) -> str:
     # TODO: This needs to be implemented properly to generate a unique key for each transformer type
-    return "0.25 MVA 10/0.4 kV"
+    return "0.25 MVA 11/0.415 kV"
 
 
 def create_pp_transformer_type(bus_branch_model: pp.pandapowerNet, pt: PowerTransformer) -> str:
     # TODO: This needs to be implemented properly to create an std_type for the transformer
-    return get_transformer_type_id(pt)
+    pp.create_std_type(
+        bus_branch_model,
+        data=
+        {
+            "sn_mva": 0.25,
+            "vn_hv_kv": 11,
+            "vn_lv_kv": 0.415,
+            "vk_percent": 4,
+            "vkr_percent": 1.2,
+            "pfe_kw": 0.6,
+            "i0_percent": 0.24,
+            "shift_degree": 150,
+            "vector_group": "Dyn5",
+            "tap_side": "hv",
+            "tap_neutral": 0,
+            "tap_min": -2,
+            "tap_max": 2,
+            "tap_step_degree": 0,
+            "tap_step_percent": 2.5,
+            "tap_phase_shifter": False
+        },
+        name="0.25 MVA 11/0.415 kV",
+        element="trafo"
+    )
+    return "0.25 MVA 11/0.415 kV"
 
 
 def create_pp_grid_connection(bus_branch_model: pp.pandapowerNet, es: EnergySource, bus: int,
@@ -97,7 +145,7 @@ def create_pp_grid_connection(bus_branch_model: pp.pandapowerNet, es: EnergySour
     pp.create_ext_grid(bus_branch_model, bus=bus, vm_pu=1, name=es.name)
 
 
-def create_pp_load(
+def create_pp_load_from_energy_consumer(
         bus_branch_model: pp.pandapowerNet,
         ec: EnergyConsumer,
         bus: int,
@@ -106,6 +154,17 @@ def create_pp_load(
     # TODO: 1kW for p and 1kVA for q given that there's no load values for energy consumers.
     # pp.create_load(bus_branch_model, bus=bus, p_mw=ec.p / 1000000, q_mvar=ec.q / 1000000, name=ec.name)
     pp.create_load(bus_branch_model, bus=bus, p_mw=2000 / 1000000, q_mvar=0 / 1000000, name=ec.name)
+
+
+def create_pp_load_from_power_electronics_connection(
+        bus_branch_model: pp.pandapowerNet,
+        pec: PowerElectronicsConnection,
+        bus: int,
+        node_breaker_model: NetworkService
+):
+    # TODO: 1kW for p and 1kVA for q given that there's no load values for energy consumers.
+    # pp.create_load(bus_branch_model, bus=bus, p_mw=ec.p / 1000000, q_mvar=ec.q / 1000000, name=ec.name)
+    pp.create_load(bus_branch_model, bus=bus, p_mw=-0 / 1000000, q_mvar=0 / 1000000, name=pec.name)
 
 
 def _create_id_from_terminals(ts: Iterable[Terminal]):

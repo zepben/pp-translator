@@ -9,7 +9,7 @@ from zepben.evolve import connect_async, AcLineSegment, Feeder, NetworkService, 
 
 from pp_creators.creators import create_pp_bus, create_pp_line, create_pp_line_type, get_line_type_id, \
     create_pp_transformer, create_pp_transformer_type, get_transformer_type_id, create_pp_grid_connection, \
-    create_pp_load
+    create_pp_load_from_energy_consumer, create_pp_load_from_power_electronics_connection
 from utils.geojson_utils import to_geojson_feature_collection, write_geojson_file
 from utils.utils import get_feeder_network
 
@@ -38,7 +38,8 @@ async def main():
             create_pp_transformer_type,
             get_transformer_type_id,
             create_pp_grid_connection,
-            create_pp_load
+            create_pp_load_from_energy_consumer,
+            create_pp_load_from_power_electronics_connection
         )
 
         # Run Diagnostics
@@ -99,7 +100,7 @@ def write_load_flow_result_to_geojson(result: pp.pandapowerNet):
 
 
 def decimal(f: float):
-    return "{:.2f}".format(f)
+    return float("{:.4f}".format(f))
 
 
 def new_create_pp_bus(bus_map: Dict):
