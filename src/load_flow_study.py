@@ -25,7 +25,7 @@ async def main():
         network = await get_feeder_network(channel, feeder_mrid)
 
         print("Running Load Flow")
-        pp_model = create_pp_network(network, network.get("CPM3B3"))
+        pp_model = create_pp_network(network, network.get(feeder_mrid))
         pp.runpp(pp_model)
 
         print("Writing Results")
