@@ -59,17 +59,6 @@ def create_pp_line(
     coords = [(p.x_position, p.y_position) for location in locations for p in location.points]
     length = length / 1000
 
-    # connected_equipment = [o_t.conducting_equipment
-    #                        for t in border_terminals
-    #                        for o_t in t.connectivity_node.terminals if o_t != t]
-    # connected_pec_or_ec = list(filter(
-    #     lambda eq: isinstance(eq, PowerElectronicsConnection) or isinstance(eq, EnergyConsumer),
-    #     connected_equipment
-    # ))
-    #
-    # if len(connected_pec_or_ec) > 0:
-    #     print("")
-
     pp.create_line(
         bus_branch_model,
         from_bus=line_busses[0],
@@ -164,7 +153,7 @@ def create_pp_load_from_power_electronics_connection(
 ):
     # TODO: 1kW for p and 1kVA for q given that there's no load values for energy consumers.
     # pp.create_load(bus_branch_model, bus=bus, p_mw=ec.p / 1000000, q_mvar=ec.q / 1000000, name=ec.name)
-    pp.create_load(bus_branch_model, bus=bus, p_mw=-0 / 1000000, q_mvar=0 / 1000000, name=pec.name)
+    pp.create_load(bus_branch_model, bus=bus, p_mw=-pec.rated_s * 1000 / 1000000, q_mvar=0 / 1000000, name=pec.name)
 
 
 def _create_id_from_terminals(ts: Iterable[Terminal]):
