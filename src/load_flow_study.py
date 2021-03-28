@@ -23,7 +23,7 @@ async def main():
         print("Requesting Feeder")
         feeder_mrid = "CPM3B3"
         network = await get_feeder_network(channel, feeder_mrid)
-        _remove_garbage(network, network.get("CPM3B3"))
+        preprocessing(network, network.get("CPM3B3"))
 
         print("Processing Study")
         bus_map = {}
@@ -138,7 +138,7 @@ def write_load_flow_study(pts: List[ConductingEquipment]) -> None:
     write_geojson_file("./feeder_for_load_flow.json", feature_collection)
 
 
-def _remove_garbage(network: NetworkService, feeder: Feeder):
+def preprocessing(network: NetworkService, feeder: Feeder):
     stuff_to_remove = []
     for f in network.objects(Feeder):
         if f.mrid != feeder.mrid:
