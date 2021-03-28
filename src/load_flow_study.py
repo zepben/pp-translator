@@ -26,11 +26,10 @@ async def main():
         preprocessing(network, network.get("CPM3B3"))
 
         print("Processing Study")
-        bus_map = {}
         result = create_bus_branch_model(
             network,
             pp.create_empty_network,
-            new_create_pp_bus(bus_map),
+            create_pp_bus,
             create_pp_line,
             create_pp_line_type,
             get_line_type_id,
@@ -41,9 +40,6 @@ async def main():
             create_pp_load_from_energy_consumer,
             create_pp_load_from_power_electronics_connection
         )
-
-        # Run Diagnostics
-        pp.diagnostic(result.bus_branch_model)
 
         # Run Load Flow
         pp.runpp(result.bus_branch_model)
