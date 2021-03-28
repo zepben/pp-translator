@@ -43,7 +43,7 @@ def write_tracing_customers_study(pts: List[PowerTransformer],
     write_geojson_file("../demo/consumer_count/consumer_count_result.json", feature_collection)
 
 
-async def get_downstream_eq(ce: ConductingEquipment) -> List[EnergyConsumer]:
+async def get_downstream_eq(ce: ConductingEquipment) -> List[ConductingEquipment]:
     eqs: List[ConductingEquipment] = []
     trace = Traversal(
         start_item=ce,
@@ -67,7 +67,7 @@ def queue_downstream_equipment(ce: ConductingEquipment, exclude=None):
     return downstream_equipment
 
 
-def collect_eq_in(collection: List[EnergyConsumer]):
+def collect_eq_in(collection: List[ConductingEquipment]):
     async def add_eq(ce, _):
         collection.append(ce)
 
