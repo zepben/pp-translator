@@ -1,16 +1,15 @@
 import asyncio
-from typing import List, Dict, FrozenSet
+from typing import Dict
 
 import pandapower as pp
 from geojson import Feature, LineString, Point, FeatureCollection
 from zepben.evolve import connect_async, AcLineSegment, Feeder, NetworkService, EnergySource, \
-    Terminal, PhaseCode, PhaseDirection, SinglePhaseKind, ConductingEquipment, PowerTransformer, \
-    create_bus_branch_model, PowerElectronicsConnection, PowerElectronicsUnit
+    Terminal, PhaseCode, PowerTransformer, create_bus_branch_model
 
 from pp_creators.creators import create_pp_bus, create_pp_line, create_pp_line_type, get_line_type_id, \
     create_pp_transformer, create_pp_transformer_type, get_transformer_type_id, create_pp_grid_connection, \
     create_pp_load_from_energy_consumer, create_pp_load_from_power_electronics_connection
-from utils.geojson_utils import to_geojson_feature_collection, write_geojson_file
+from utils.geojson_utils import write_geojson_file
 from utils.utils import get_feeder_network
 
 
@@ -27,7 +26,7 @@ async def main():
 
         print("Processing Study")
         result = create_bus_branch_model(
-            network,
+            lambda: network,
             pp.create_empty_network,
             create_pp_bus,
             create_pp_line,
@@ -99,41 +98,6 @@ def decimal(f: float):
     return float("{:.4f}".format(f))
 
 
-def new_create_pp_bus(bus_map: Dict):
-    def wrapper(bus_branch_model: pp.pandapowerNet,
-                base_voltage: int,
-                negligible_impedance_equipment: FrozenSet[ConductingEquipment],
-                border_terminals: FrozenSet[Terminal],
-                inner_terminals: FrozenSet[Terminal],
-                node_breaker_model: NetworkService):
-        pp_bus = create_pp_bus(bus_branch_model,
-                               base_voltage,
-                               negligible_impedance_equipment,
-                               border_terminals,
-                               inner_terminals, node_breaker_model)
-        bus_map[pp_bus] = [t.conducting_equipment.mrid for t in border_terminals
-                           if t.conducting_equipment is not None][0]
-        return pp_bus
-
-    return wrapper
-
-
-def new_create_pp_line(line_map: Dict):
-    def wrapper():
-        pass
-
-    return wrapper()
-
-
-def write_load_flow_study(pts: List[ConductingEquipment]) -> None:
-    class_to_properties = {
-        ConductingEquipment: {"name": lambda ec: ec.name, "type": lambda x: "ec"},
-        AcLineSegment: {"name": lambda ec: ec.name},
-    }
-    feature_collection = to_geojson_feature_collection(pts, class_to_properties)
-    write_geojson_file("./feeder_for_load_flow.json", feature_collection)
-
-
 def preprocessing(network: NetworkService, feeder: Feeder):
     stuff_to_remove = []
     for f in network.objects(Feeder):
@@ -159,28 +123,6 @@ def preprocessing(network: NetworkService, feeder: Feeder):
         for t in pt.terminals:
             network.remove(t)
 
-    # power_electronics_connections = []
-    # for pec in network.objects(PowerElectronicsConnection):
-    #     power_electronics_connections.append(pec)
-    #
-    # for pec in power_electronics_connections:
-    #     for t in pec.terminals:
-    #         for other_t in t.connectivity_node.terminals:
-    #             other_t.conducting_equipment.remove_terminal(other_t)
-    #             try:
-    #                 network.remove(other_t.connectivity_node)
-    #             except:
-    #                 pass
-    #             network.remove(other_t)
-    #     network.remove(pec)
-    #
-    # power_electronics_units = []
-    # for peu in network.objects(PowerElectronicsUnit):
-    #     power_electronics_units.append(peu)
-    #
-    # for peu in power_electronics_units:
-    #     network.remove(peu)
-
     # Add Energy Source
     es = EnergySource(mrid=f"{feeder.mrid}_es")
     es.base_voltage = feeder.normal_head_terminal.conducting_equipment.base_voltage
@@ -189,45 +131,6 @@ def preprocessing(network: NetworkService, feeder: Feeder):
     network.add(es)
     network.add(es_t)
     network.connect_by_mrid(es_t, feeder.normal_head_terminal.connectivity_node_id)
-
-
-def _create_feeder_network(feeder: Feeder):
-    network = NetworkService()
-
-    # for eq in feeder.equipment:
-    #     for t in eq.terminals:
-    #         t.traced_phases = TracedPhases()
-    for eq in feeder.equipment:
-        is_off_supply = True
-        for t in eq.terminals:
-            direction = t.traced_phases.direction_normal(SinglePhaseKind.A)
-            is_off_supply = direction.has(PhaseDirection.NONE)
-            if not is_off_supply:
-                network.add(t.connectivity_node)
-                network.add(t)
-        if not is_off_supply:
-            network.add(eq)
-
-    # Add Energy Source
-    es = EnergySource(mrid=f"{feeder.mrid}_es")
-    es.base_voltage = feeder.normal_head_terminal.conducting_equipment.base_voltage
-    es_t = Terminal(conducting_equipment=es, phases=PhaseCode.ABCN, sequence_number=1)
-    es.add_terminal(es_t)
-    network.add(es)
-    network.add(es_t)
-    network.connect_by_mrid(es_t, feeder.normal_head_terminal.connectivity_node_id)
-
-    # disconnected_eq = []
-    # for eq in network.objects(ConductingEquipment):
-    #     terminals = list(eq.terminals)
-    #
-    #     for t in terminals:
-    #         direction = t.traced_phases.direction_normal(SinglePhaseKind.A)
-    #         is_off_supply = direction.has(PhaseDirection.NONE)
-    #         if is_off_supply:
-    #             disconnected_eq.append(eq)
-
-    return network
 
 
 def get_length_property(acls: AcLineSegment):

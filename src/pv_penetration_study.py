@@ -36,7 +36,7 @@ def write_pv_penetration_study(pvs: List[PhotoVoltaicUnit]) -> None:
 
 
 def get_rated_s_property(pv: PhotoVoltaicUnit):
-    return pv.power_electronics_connection.rated_s
+    return pv.power_electronics_connection.rated_s / 1000
 
 
 def add_more_pv(network: NetworkService):

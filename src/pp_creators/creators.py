@@ -140,8 +140,6 @@ def create_pp_load_from_energy_consumer(
         bus: int,
         node_breaker_model: NetworkService
 ):
-    # TODO: 1kW for p and 1kVA for q given that there's no load values for energy consumers.
-    # pp.create_load(bus_branch_model, bus=bus, p_mw=ec.p / 1000000, q_mvar=ec.q / 1000000, name=ec.name)
     pp.create_load(bus_branch_model, bus=bus, p_mw=2000 / 1000000, q_mvar=0 / 1000000, name=ec.name)
 
 
@@ -151,11 +149,8 @@ def create_pp_load_from_power_electronics_connection(
         bus: int,
         node_breaker_model: NetworkService
 ):
-    # TODO: 1kW for p and 1kVA for q given that there's no load values for energy consumers.
-    # pp.create_load(bus_branch_model, bus=bus, p_mw=ec.p / 1000000, q_mvar=ec.q / 1000000, name=ec.name)
-    pp.create_load(bus_branch_model, bus=bus, p_mw=-pec.rated_s * 1000 / 1000000, q_mvar=0 / 1000000, name=pec.name)
+    pp.create_load(bus_branch_model, bus=bus, p_mw=-pec.rated_s / 1000000, q_mvar=0 / 1000000, name=pec.name)
 
 
 def _create_id_from_terminals(ts: Iterable[Terminal]):
     "_".join(sorted((t.mrid for t in ts)))
-    pass
