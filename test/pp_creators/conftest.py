@@ -9,7 +9,8 @@ from typing import List
 from pytest import fixture
 from zepben.evolve import PhaseCode, NetworkService, BaseVoltage, EnergySource, Terminal, ConductingEquipment, \
     AcLineSegment, PerLengthSequenceImpedance, \
-    PowerTransformer, PowerTransformerEnd, EnergyConsumer, OverheadWireInfo, PowerTransformerInfo
+    PowerTransformer, PowerTransformerEnd, EnergyConsumer, OverheadWireInfo, PowerTransformerInfo, Location, \
+    PositionPoint
 
 
 @fixture()
@@ -84,6 +85,13 @@ def simple_node_breaker_network() -> NetworkService:
     network.add(ec_t)
 
     network.connect_terminals(line_terminals[1], ec_t)
+
+    # Locations
+    location = Location("loc")
+    location.add_point(PositionPoint(x_position=0.0, y_position=0.0))
+
+    for ce in network.objects(ConductingEquipment):
+        ce.location = location
 
     return network
 

@@ -1,0 +1,13 @@
+Issues:
+
+- Currently there's a lot of values hard coded in the creators that only work for CPM3B3, and this causes test to fail:
+    1. vm_pu in grid connection
+    2. transformer type
+    3. line type
+
+- Need to add a way to provide load values to the load creation methods in the pp-translator. Easy way to do that is just
+function currying.
+
+- Add clear instruction of the things that need to be implemented for example creation of std type for lines and transformers.
+
+- Create repo for all the different demo scripts and make them use the pp-translator once it is working.

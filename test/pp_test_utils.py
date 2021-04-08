@@ -73,7 +73,7 @@ def _log_pp_dataframe(pp_df: DataFrame, title: str):
 
 
 def assert_no_creation_result_errors(result: CreationResult, log: bool = False):
-    if not result.succeed:
+    if not result.was_successful:
         error_msg = ""
         for error_type, infos in result.errors.items():
             error_msg += f"{error_type}\n"
