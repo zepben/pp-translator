@@ -16,24 +16,31 @@ You should have received a copy of the GNU Affero General Public License
 along with ejsonbend.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from glob import glob
-from os.path import basename
-from os.path import splitext
-
-from setuptools import setup, find_packages
+from setuptools import setup, find_namespace_packages
 
 test_deps = ["pytest", "pytest-cov", "pytest-asyncio", "hypothesis<6"]
 setup(
     name="pp-translator",
     version="0.1",
-    packages=find_packages('src'),
-    package_dir={'': 'src'},
-    py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
+    description="Library to translate zepben.evolve network models to pandapower models",
+    url="https://github.com/zepben/pp-translator",
+    license="MPL 2.0",
+    classifiers=[
+        "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Operating System :: OS Independent"
+    ],
+    package_dir={"": "src"},
+    packages=find_namespace_packages(where="src"),
+    python_requires='>=3.7',
     install_requires=[
-        "zepben.evolve>=0.23.0b8",
+        "zepben.evolve",
         "pandapower"
     ],
     extras_require={
         "test": test_deps,
-    },
+    }
 )
