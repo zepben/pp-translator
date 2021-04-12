@@ -4,7 +4,7 @@
 #  License, v. 2.0. If a copy of the MPL was not distributed with this
 #  file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-from typing import FrozenSet, Tuple, Iterable, List
+from typing import FrozenSet, Tuple, List, Callable, Iterable
 
 import pandapower as pp
 from zepben.evolve import Terminal, NetworkService, AcLineSegment, PerLengthSequenceImpedance, WireInfo, \
@@ -136,24 +136,28 @@ def create_pp_grid_connection(bus_branch_model: pp.pandapowerNet, es: EnergySour
     pp.create_ext_grid(bus_branch_model, bus=bus, vm_pu=1, name=es.name)
 
 
-def create_pp_load_from_energy_consumer(
-        bus_branch_model: pp.pandapowerNet,
-        ec: EnergyConsumer,
-        bus: int,
-        node_breaker_model: NetworkService
-):
-    # TODO: This needs to be implemented properly to generate the loads based on consumption readings instead of using \
-    #  hard-coded load
-    pp.create_load(bus_branch_model, bus=bus, p_mw=2000 / 1000000, q_mvar=0 / 1000000, name=ec.name)
+def create_pp_load_from_energy_consumer(load_provider: Callable[[EnergyConsumer], Tuple[int, int]]) -> \
+        Callable[[pp.pandapowerNet, EnergyConsumer, int, NetworkService], None]:
+    def creator(bus_branch_model: pp.pandapowerNet,
+                ec: EnergyConsumer,
+                bus: int,
+                node_breaker_model: NetworkService):
+        p, q = load_provider(ec)
+        pp.create_load(bus_branch_model, bus=bus, p_mw=p / 1000000, q_mvar=q / 1000000, name=ec.name)
+
+    return creator
 
 
 def create_pp_load_from_power_electronics_connection(
-        bus_branch_model: pp.pandapowerNet,
-        pec: PowerElectronicsConnection,
-        bus: int,
-        node_breaker_model: NetworkService
-):
-    pp.create_load(bus_branch_model, bus=bus, p_mw=-pec.rated_s / 1000000, q_mvar=0 / 1000000, name=pec.name)
+        load_provider: Callable[[PowerElectronicsConnection], Tuple[int, int]]) -> \
+        Callable[[pp.pandapowerNet, PowerElectronicsConnection, int, NetworkService], None]:
+    def creator(bus_branch_model: pp.pandapowerNet,
+                pec: PowerElectronicsConnection, bus: int,
+                node_breaker_model: NetworkService):
+        p, q = load_provider(pec)
+        pp.create_load(bus_branch_model, bus=bus, p_mw=p / 1000000, q_mvar=q / 1000000, name=pec.name)
+
+    return creator
 
 
 def _create_id_from_terminals(ts: Iterable[Terminal]):
