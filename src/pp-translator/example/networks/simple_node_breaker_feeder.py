@@ -55,7 +55,7 @@ class SimpleNodeBreakerFeeder:
 
         # Create Transformer
         self.network_service.create_two_winding_power_transformer(cn1=cn1, cn2=cn2, name="Trafo", location=loc1,
-                                                                  asset_info=pt_info,)
+                                                                  asset_info=pt_info)
 
         # TODO: Add _powertransformerends
         # TODO: Associate the PowerTransformerInfo() to th PowerTransformer instance
