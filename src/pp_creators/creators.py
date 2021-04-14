@@ -4,11 +4,11 @@
 #  License, v. 2.0. If a copy of the MPL was not distributed with this
 #  file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-from typing import FrozenSet, Tuple, List, Callable, Iterable
+from typing import FrozenSet, Tuple, List, Callable, Iterable, TypeVar
 
 import pandapower as pp
 from zepben.evolve import Terminal, NetworkService, AcLineSegment, PerLengthSequenceImpedance, WireInfo, \
-    PowerTransformer, EnergySource, EnergyConsumer, ConductingEquipment, Location, PowerElectronicsConnection
+    PowerTransformer, EnergySource, ConductingEquipment, Location
 
 __all__ = [
     "create_pp_bus",
@@ -19,8 +19,7 @@ __all__ = [
     "get_transformer_type_id",
     "create_pp_transformer_type",
     "create_pp_grid_connection",
-    "create_pp_load_from_energy_consumer",
-    "create_pp_load_from_power_electronics_connection"
+    "create_pp_load"
 ]
 
 
@@ -93,7 +92,25 @@ def create_pp_line_type(bus_branch_model: pp.pandapowerNet, per_length_sequence_
 
 def create_pp_transformer(bus_branch_model: pp.pandapowerNet, pt: PowerTransformer, busses: Tuple[int, int],
                           pt_type: str, node_breaker_model: NetworkService):
-    pp.create_transformer(bus_branch_model, hv_bus=busses[0], lv_bus=busses[1], std_type=pt_type, name=pt.name)
+    # pp.create_transformer(bus_branch_model, hv_bus=busses[0], lv_bus=busses[1], std_type=pt_type, name=pt.name)
+    pp.create_transformer_from_parameters(
+        bus_branch_model,
+        hv_bus=busses[0],
+        lv_bus=busses[1],
+        sn_mva=0.25,
+        vn_hv_kv=list(pt.ends)[0].rated_u / 1000,
+        vn_lv_kv=list(pt.ends)[1].rated_u / 1000,
+        vkr_percent=1.2,
+        # vkr_percent=0,
+        vk_percent=4,
+        # vk_percent=0.1,
+        pfe_kw=0.6,
+        # pfe_kw=0,
+        i0_percent=0.24,
+        # i0_percent=0,
+        vector_group="Dyn5",
+        name=pt.name
+    )
 
 
 def get_transformer_type_id(pt: PowerTransformer) -> str:
@@ -136,26 +153,17 @@ def create_pp_grid_connection(bus_branch_model: pp.pandapowerNet, es: EnergySour
     pp.create_ext_grid(bus_branch_model, bus=bus, vm_pu=1, name=es.name)
 
 
-def create_pp_load_from_energy_consumer(load_provider: Callable[[EnergyConsumer], Tuple[int, int]]) -> \
-        Callable[[pp.pandapowerNet, EnergyConsumer, int, NetworkService], None]:
+CE = TypeVar('CE', bound=ConductingEquipment)
+
+
+def create_pp_load(load_provider: Callable[[CE], Tuple[int, int]]) -> \
+        Callable[[pp.pandapowerNet, CE, int, NetworkService], None]:
     def creator(bus_branch_model: pp.pandapowerNet,
-                ec: EnergyConsumer,
+                ce: CE,
                 bus: int,
                 node_breaker_model: NetworkService):
-        p, q = load_provider(ec)
-        pp.create_load(bus_branch_model, bus=bus, p_mw=p / 1000000, q_mvar=q / 1000000, name=ec.name)
-
-    return creator
-
-
-def create_pp_load_from_power_electronics_connection(
-        load_provider: Callable[[PowerElectronicsConnection], Tuple[int, int]]) -> \
-        Callable[[pp.pandapowerNet, PowerElectronicsConnection, int, NetworkService], None]:
-    def creator(bus_branch_model: pp.pandapowerNet,
-                pec: PowerElectronicsConnection, bus: int,
-                node_breaker_model: NetworkService):
-        p, q = load_provider(pec)
-        pp.create_load(bus_branch_model, bus=bus, p_mw=p / 1000000, q_mvar=q / 1000000, name=pec.name)
+        p, q = load_provider(ce)
+        pp.create_load(bus_branch_model, bus=bus, p_mw=p / 1000000, q_mvar=q / 1000000, name=ce.name)
 
     return creator
 
