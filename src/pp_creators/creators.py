@@ -38,7 +38,7 @@ def create_pp_bus(
 
     return pp.create_bus(
         bus_branch_model,
-        vn_kv=base_voltage / 1000,
+        vn_kv=11 if base_voltage == 12700 else (base_voltage / 1000),
         name=f"bus_{_create_id_from_terminals(border_terminals)}",
         geodata=coords[0]
     )
@@ -56,7 +56,8 @@ def create_pp_line(
 ):
     locations: List[Location] = [acls.location for acls in common_lines]
     coords = [(p.x_position, p.y_position) for location in locations for p in location.points]
-    length = length / 1000
+    voltage = [l.base_voltage.nominal_voltage for l in common_lines][0]
+    length = (length * 3 if voltage == 12700 else length) / 1000
 
     pp.create_line(
         bus_branch_model,
@@ -81,36 +82,55 @@ def get_line_type_id(
     elif voltage < 12000:
         return "NA2XS2Y 1x95 RM/25 12/20 kV"
     else:
-        return "N2XS(FL)2Y 1x120 RM/35 64/110 kV"
+        return "SWER"
 
 
 def create_pp_line_type(bus_branch_model: pp.pandapowerNet, per_length_sequence_impedance: PerLengthSequenceImpedance,
                         wire_info: WireInfo, voltage: int) -> str:
     # TODO: This needs to be implemented properly to create an std_type for the line
-    return get_line_type_id(per_length_sequence_impedance, wire_info, voltage)
+    line_type_id = get_line_type_id(per_length_sequence_impedance, wire_info, voltage)
+
+    if line_type_id == "SWER":
+        pp.create_std_type(
+            bus_branch_model,
+            {
+                "c_nf_per_km": 6.7,
+                "r_ohm_per_km": 10.0,
+                "x_ohm_per_km": 2.5,
+                "max_i_ka": 0.252,
+                "type": "cs",
+                "q_mm2": 10,
+                "alpha": 3.93e-3
+            },
+            "SWER",
+            "line"
+        )
+        return line_type_id
+    else:
+        return line_type_id
 
 
 def create_pp_transformer(bus_branch_model: pp.pandapowerNet, pt: PowerTransformer, busses: Tuple[int, int],
                           pt_type: str, node_breaker_model: NetworkService):
-    # pp.create_transformer(bus_branch_model, hv_bus=busses[0], lv_bus=busses[1], std_type=pt_type, name=pt.name)
-    pp.create_transformer_from_parameters(
-        bus_branch_model,
-        hv_bus=busses[0],
-        lv_bus=busses[1],
-        sn_mva=0.25,
-        vn_hv_kv=list(pt.ends)[0].rated_u / 1000,
-        vn_lv_kv=list(pt.ends)[1].rated_u / 1000,
-        vkr_percent=1.2,
-        # vkr_percent=0,
-        vk_percent=4,
-        # vk_percent=0.1,
-        pfe_kw=0.6,
-        # pfe_kw=0,
-        i0_percent=0.24,
-        # i0_percent=0,
-        vector_group="Dyn5",
-        name=pt.name
-    )
+    if "CPM3B3" in {f.mrid for f in pt.normal_feeders}:
+        pp.create_transformer(bus_branch_model, hv_bus=busses[0], lv_bus=busses[1], std_type=pt_type, name=pt.name)
+    else:
+        pp.create_transformer_from_parameters(
+            bus_branch_model,
+            hv_bus=busses[0],
+            lv_bus=busses[1],
+            sn_mva=1.0,
+            # vn_hv_kv=list(pt.ends)[0].rated_u / 1000,
+            # vn_lv_kv=list(pt.ends)[1].rated_u / 1000,
+            vn_hv_kv=11,
+            vn_lv_kv=11,
+            vk_percent=0.01,
+            vkr_percent=0.005,
+            pfe_kw=0,
+            i0_percent=0,
+            vector_group="D0",
+            name=pt.name
+        )
 
 
 def get_transformer_type_id(pt: PowerTransformer) -> str:
