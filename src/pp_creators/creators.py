@@ -19,7 +19,8 @@ __all__ = [
     "get_transformer_type_id",
     "create_pp_transformer_type",
     "create_pp_grid_connection",
-    "create_pp_load"
+    "create_pp_load",
+    "create_transformer_or_hv_load"
 ]
 
 
@@ -53,13 +54,13 @@ def create_pp_line(
         border_terminals: FrozenSet[Terminal],
         inner_terminals: FrozenSet[Terminal],
         node_breaker_model: NetworkService
-):
+) -> int:
     locations: List[Location] = [acls.location for acls in common_lines]
     coords = [(p.x_position, p.y_position) for location in locations for p in location.points]
     voltage = [l.base_voltage.nominal_voltage for l in common_lines][0]
     length = (length * 3 if voltage == 12700 else length) / 1000
 
-    pp.create_line(
+    return pp.create_line(
         bus_branch_model,
         from_bus=line_busses[0],
         to_bus=line_busses[1],
@@ -110,12 +111,30 @@ def create_pp_line_type(bus_branch_model: pp.pandapowerNet, per_length_sequence_
         return line_type_id
 
 
+def create_transformer_or_hv_load(load_provider: Callable[[PowerTransformer], Tuple[int, int]]) -> \
+        Callable[[pp.pandapowerNet, PowerTransformer, Tuple[int, int], str, NetworkService], int]:
+    def wrapper(bus_branch_model: pp.pandapowerNet, pt: PowerTransformer, busses: Tuple[int, int],
+                pt_type: str, node_breaker_model: NetworkService):
+        if busses[1] is None:
+            return create_pp_load(load_provider)(bus_branch_model, pt, busses[0], node_breaker_model)
+        else:
+            return create_pp_transformer(bus_branch_model, pt, busses, pt_type, node_breaker_model)
+
+    return wrapper
+
+
 def create_pp_transformer(bus_branch_model: pp.pandapowerNet, pt: PowerTransformer, busses: Tuple[int, int],
-                          pt_type: str, node_breaker_model: NetworkService):
+                          pt_type: str, node_breaker_model: NetworkService) -> int:
     if "CPM3B3" in {f.mrid for f in pt.normal_feeders}:
-        pp.create_transformer(bus_branch_model, hv_bus=busses[0], lv_bus=busses[1], std_type=pt_type, name=pt.name)
+        return pp.create_transformer(
+            bus_branch_model,
+            hv_bus=busses[0],
+            lv_bus=busses[1],
+            std_type=pt_type,
+            name=pt.name
+        )
     else:
-        pp.create_transformer_from_parameters(
+        return pp.create_transformer_from_parameters(
             bus_branch_model,
             hv_bus=busses[0],
             lv_bus=busses[1],
@@ -177,13 +196,13 @@ CE = TypeVar('CE', bound=ConductingEquipment)
 
 
 def create_pp_load(load_provider: Callable[[CE], Tuple[int, int]]) -> \
-        Callable[[pp.pandapowerNet, CE, int, NetworkService], None]:
+        Callable[[pp.pandapowerNet, CE, int, NetworkService], int]:
     def creator(bus_branch_model: pp.pandapowerNet,
                 ce: CE,
                 bus: int,
-                node_breaker_model: NetworkService):
+                node_breaker_model: NetworkService) -> int:
         p, q = load_provider(ce)
-        pp.create_load(bus_branch_model, bus=bus, p_mw=p / 1000000, q_mvar=q / 1000000, name=ce.name)
+        return pp.create_load(bus_branch_model, bus=bus, p_mw=p / 1000000, q_mvar=q / 1000000, name=ce.name)
 
     return creator
 
