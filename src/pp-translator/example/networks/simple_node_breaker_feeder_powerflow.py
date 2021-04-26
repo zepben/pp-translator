@@ -7,6 +7,7 @@ import asyncio
 import sys
 import pandapower as pp
 import pandas as pd
+import math
 
 
 net = SimpleNodeBreakerFeeder(breaker_is_open=False)
@@ -52,20 +53,43 @@ pp.create_load(net_pp, bus=b3, p_mw=0.1, q_mvar=0.05, name="Load")
 
 # Create branch elements
 # tid = pp.create_transformer(net_pp, hv_bus=b1, lv_bus=b2, std_type="0.4 MVA 20/0.4 kV", name="Trafo")
+
+# Extract parameters from transformer
+# Name, rated voltages and power:
+# name = power_transformers[0].name
+# vn_hv_kv = power_transformers[0]._power_transformer_ends[0].ratedU/1000
+# vn_lv_kv = power_transformers[0]._power_transformer_ends[1].ratedU/1000
+# sn_mva = power_transformers[0]._power_transformer_ends[0].ratedU/1e6
+name = "Trafo"
 vn_hv_kv = 20
 vn_lv_kv = 0.4
+sn_mva = 0.4
+
+# Extract parameters from CIM
+# r = phaseAngleClock
+# x = power_transformers[0]._power_transformer_ends[0].x
+# b = power_transformers[0]._power_transformer_ends[0].b
+# g = power_transformers[0]._power_transformer_ends[0].g
+
+# Calculate parameters for pp
+# vk_percent = sqrt(r**2+x**2)*sn_mva/(1.732*vn_hv_kv**2)*100
+# vkr_percent = (r*sn_mva)/(1.732*vn_hv_kv**2)*100
+# pfe_kw = (g*vn_hv_kv**2)*1000
+# i0_percent = (sqrt(b**2+g**2)*vn_hv_kv**2)*100/sn_mva
 vk_percent = 6.0
 vkr_percent = 1.425
 pfe_kw = 1.35
 i0_percent = 0.3375
+# phaseAngleClock_hv = power_transformers[0]._power_transformer_ends[0].phaseAngleClock
+# phaseAngleClock_lv = power_transformers[0]._power_transformer_ends[1].phaseAngleClock
+# shift_degree = abs(phaseAngleClock_hv - phaseAngleClock_lv)*30
 shift_degree = 150
+# TODO: Extract the tap information
 tap_side = "hv"
 tap_neutral = 0
 tap_min = -2
 tap_max = 2
 tap_pos = 0
-name = "Trafo"
-sn_mva = 0.4
 
 # Create transformer from parameters
 tid = pp.create_transformer_from_parameters(net_pp, hv_bus=b1, lv_bus=b2, name=name, vn_hv_kv=v1_kv, vn_lv_kv=v2_kv,
