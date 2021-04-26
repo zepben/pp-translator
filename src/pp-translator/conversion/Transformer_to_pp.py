@@ -26,6 +26,8 @@ class TransformerPp(object):
             x0 = transformer._power_transformer_ends[0].x0
             g0 = transformer._power_transformer_ends[0].g0
             b0 = transformer._power_transformer_ends[0].b0
+            angle1 = transformer._power_transformer_ends[0].phaseAngleClock
+            angle2 = transformer._power_transformer_ends[1].phaseAngleClock
 
             # Calculate pp parameters
             self.vk_percent = sqrt(r**2+x**2)*s/(1.732*self.vn_hv_kv**2)*100
@@ -36,7 +38,7 @@ class TransformerPp(object):
             self.vkr0_percent = (r0*s)/(1.732*self.vn_hv_kv**2)*100
             self.mag0_rx = b0/g0
             self.mag0_percent = 100/sqrt(b0**2+g0**2)
-            self.shift_degree = 30*transformer._power_transformer_ends[1].phaseAngleClock
+            self.shift_degree = 30*abs(angle2-angle1)
             con1 = transformer._power_transformer_ends[0].connectionKind
             con2 = transformer._power_transformer_ends[1].connectionKind
             self.vector_group = con1 + con2

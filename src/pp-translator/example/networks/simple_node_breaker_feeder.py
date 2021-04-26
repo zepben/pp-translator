@@ -54,14 +54,14 @@ class SimpleNodeBreakerFeeder:
         pt_info = PowerTransformerInfo(mrid="pt_info")
         self.network_service.add(pt_info)
 
-        # Create PowerTransformerEnd
+        # Create PowerTransformerEnds
         pt_ends = []
         pt_ends[0] = PowerTransformerEnd(mrid="pt_end_1", endNumber=1, r=24.6817, x=100.9496, b=0, g=0.0084375,
                                        ratedS=400000, ratedU=20000, ConnectionKind="Y", phaseAngleClock=0)
         pt_ends[1] = PowerTransformerEnd(mrid="pt_end_2", endNumber=2, r=0, x=0, b=0, g=0, ratedS=400000,
                                        ratedU=400, ConnectionKind="D", phaseAngleClock=5)
 
-        # Revisar en https://github.com/zepben/pp-translator/blob/14ab169851d37868add3408f7fcbfbf0602f3f4c/test/pp_creators/conftest.py#L116
+        self.network_service.add(pt_ends)
 
         # Create Transformer
         self.network_service.create_two_winding_power_transformer(cn1=cn1, cn2=cn2, name="Trafo", location=loc1,

@@ -82,7 +82,7 @@ pfe_kw = 1.35
 i0_percent = 0.3375
 # phaseAngleClock_hv = power_transformers[0]._power_transformer_ends[0].phaseAngleClock
 # phaseAngleClock_lv = power_transformers[0]._power_transformer_ends[1].phaseAngleClock
-# shift_degree = abs(phaseAngleClock_hv - phaseAngleClock_lv)*30
+# shift_degree = 30*abs(phaseAngleClock_hv - phaseAngleClock_lv)
 shift_degree = 150
 # TODO: Extract the tap information
 tap_side = "hv"
