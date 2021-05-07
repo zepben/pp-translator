@@ -8,9 +8,8 @@ from typing import Dict, List, Any
 import pandapower as pp
 # noinspection PyPackageRequirements
 from pandas import DataFrame
-from zepben.evolve.model.busbranch.bus_branch import CreationResult
 
-__all__ = ["validate_pp_load_flow_results", "assert_no_creation_result_errors"]
+__all__ = ["validate_pp_load_flow_results"]
 
 
 def validate_pp_load_flow_results(
@@ -70,16 +69,3 @@ def _log_pp_dataframe(pp_df: DataFrame, title: str):
     for i in range(0, total_row_number):
         row = f"| {' | '.join((str(values[column][i]) for column in columns))} |"
         print(row)
-
-
-def assert_no_creation_result_errors(result: CreationResult, log: bool = False):
-    if not result.succeed:
-        error_msg = ""
-        for error_type, infos in result.errors.items():
-            error_msg += f"{error_type}\n"
-            for info in infos:
-                error_msg += f"    {error_type.value} for {info.io.mrid}\n"
-        if log:
-            assert False, error_msg
-        else:
-            assert False

@@ -5,36 +5,20 @@
 #  file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import pandapower as pp
-# Refer to pandapower's simple 3-bus network example: https://www.pandapower.org/start/#a-short-introduction-
-from test.pp_test_utils import validate_pp_load_flow_results, assert_no_creation_result_errors
-# noinspection PyPackageRequirements
-from zepben.evolve.model.busbranch.bus_branch import create_bus_branch_model
 
-from src.pp_creators.creators import create_pp_bus, create_pp_line, create_pp_load, create_pp_line_type, get_line_type_id, \
-    create_pp_transformer, create_pp_transformer_type, get_transformer_type_id, create_pp_grid_connection
+from src.pp_creators.creators import PandaPowerNetworkCreator
+# Refer to pandapower's simple 3-bus network example: https://www.pandapower.org/start/#a-short-introduction-
+from test.pp_test_utils import validate_pp_load_flow_results
 
 
 def test_create_pp_bus_branch_model(simple_node_breaker_network):
     node_breaker_model = simple_node_breaker_network
-
-    result = create_bus_branch_model(
-        node_breaker_model,
-        pp.create_empty_network,
-        create_pp_bus,
-        create_pp_line,
-        create_pp_line_type,
-        get_line_type_id,
-        create_pp_transformer,
-        create_pp_transformer_type,
-        get_transformer_type_id,
-        create_pp_grid_connection,
-        create_pp_load
-    )
-    assert_no_creation_result_errors(result)
+    creator = PandaPowerNetworkCreator()
+    result = creator.create(node_breaker_model)
 
     # Run Load Flow
-    pp.runpp(result.bus_branch_model)
-    pp_network = result.bus_branch_model
+    pp.runpp(result.network)
+    pp_network = result.network
 
     # Validate and Log
     validate_pp_load_flow_results(
