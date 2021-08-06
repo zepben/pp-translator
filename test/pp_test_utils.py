@@ -3,6 +3,7 @@
 #  This Source Code Form is subject to the terms of the Mozilla Public
 #  License, v. 2.0. If a copy of the MPL was not distributed with this
 #  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+from functools import reduce
 from typing import Dict, List, Any
 
 import pandapower as pp
@@ -48,11 +49,21 @@ def _assert_dicts_are_equal(a: Dict, b: Dict):
         a_i = a[k]
         b_i = b[k]
 
-        if isinstance(a_i, float) and pp.isnan(a_i):
-            assert isinstance(b_i, float) and pp.isnan(b_i), \
-                f"actual {k} value of {a_i} is different to expected {k} value of {b_i}"
+        if isinstance(b_i, list):
+            assert reduce(
+                lambda status, b_ii: status or _compare_values(a_i, b_ii),
+                b_i,
+                False
+            ), f"actual {k} value of {a_i} is different to expected {k} value of {b_i}"
         else:
-            assert a_i == b_i, f"actual {k} value of {a_i} is different to expected {k} value of {b_i}"
+            assert _compare_values(a_i, b_i), f"actual {k} value of {a_i} is different to expected {k} value of {b_i}"
+
+
+def _compare_values(a, b) -> bool:
+    if isinstance(a, float) and pp.isnan(a):
+        return isinstance(b, float) and pp.isnan(b)
+    else:
+        return a == b
 
 
 def _log_pp_dataframe(pp_df: DataFrame, title: str):

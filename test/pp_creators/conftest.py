@@ -9,11 +9,11 @@ from typing import List
 from pytest import fixture
 from zepben.evolve import PhaseCode, NetworkService, BaseVoltage, EnergySource, Terminal, ConductingEquipment, \
     AcLineSegment, PerLengthSequenceImpedance, \
-    PowerTransformer, PowerTransformerEnd, EnergyConsumer, OverheadWireInfo, PowerTransformerInfo
+    PowerTransformer, PowerTransformerEnd, EnergyConsumer, OverheadWireInfo, PowerTransformerInfo, EnergySourcePhase
 
 
 @fixture()
-def simple_node_breaker_network() -> NetworkService:
+async def simple_node_breaker_network() -> NetworkService:
     # Network
     network = NetworkService()
 
@@ -45,7 +45,19 @@ def simple_node_breaker_network() -> NetworkService:
     network.add(pt_info)
 
     # EnergySource
-    es = EnergySource(mrid="grid_connection", name="Grid Connection", voltage_magnitude=1.02 * bv_hv.nominal_voltage)
+    energy_source_phases = []
+    for sp in PhaseCode.ABC.single_phases:
+        esp = EnergySourcePhase()
+        esp.phase = sp
+        energy_source_phases.append(esp)
+        network.add(esp)
+    es = EnergySource(
+        mrid="grid_connection",
+        name="Grid Connection",
+        voltage_magnitude=1.02 * bv_hv.nominal_voltage,
+        energy_source_phases=energy_source_phases
+    )
+
     es.base_voltage = bv_hv
     network.add(es)
     es_t = _create_terminal(es)
@@ -85,6 +97,7 @@ def simple_node_breaker_network() -> NetworkService:
 
     network.connect_terminals(line_terminals[1], ec_t)
 
+    await network.set_phases()
     return network
 
 

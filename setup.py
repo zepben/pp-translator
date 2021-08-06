@@ -15,7 +15,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with ejsonbend.  If not, see <https://www.gnu.org/licenses/>.
 """
-
 from glob import glob
 from os.path import basename
 from os.path import splitext
@@ -25,13 +24,13 @@ from setuptools import setup, find_packages
 test_deps = ["pytest", "pytest-cov", "pytest-asyncio", "hypothesis<6"]
 setup(
     name="pp-translator",
-    version="0.1",
+    version="0.1.0",
     packages=find_packages('src'),
     package_dir={'': 'src'},
-    py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
+    py_modules=[splitext(basename(path))[0] for path in glob('src/**/*.py')],
     install_requires=[
-        "zepben.evolve>=0.23.0b8",
-        "pandapower"
+        "zepben.evolve==0.23.0b26",
+        "pandapower==2.6.0"
     ],
     extras_require={
         "test": test_deps,
