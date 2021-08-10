@@ -10,9 +10,9 @@ from zepben.evolve import Terminal, NetworkService, AcLineSegment, PowerTransfor
     PowerElectronicsConnection, BusBranchNetworkCreator, IdentifiedObject, BusBranchNetworkCreationValidator, \
     EnergySource
 
-__all__ = ["NetworkError", "NetworkErrors", "ErrorAggregator"]
+from pp_creators.utils import get_upstream_end_to_tns
 
-from pp_creators.utils import get_upstream_topological_nodes
+__all__ = ["NetworkError", "NetworkErrors", "ErrorAggregator"]
 
 
 class NetworkError:
@@ -129,7 +129,8 @@ class ErrorAggregator(BusBranchNetworkCreator[NetworkErrors, int, int, int, int,
             ends_to_topological_nodes: List[Tuple[PowerTransformerEnd, Optional[int]]],
             node_breaker_network: NetworkService
     ) -> Dict[int, int]:
-        upstream_tns = get_upstream_topological_nodes(ends_to_topological_nodes)
+        upstream_end_to_tns = get_upstream_end_to_tns(ends_to_topological_nodes)
+        upstream_tns = [tn for (end, tn) in upstream_end_to_tns]
         downstream_tns = [tn for (end, tn) in ends_to_topological_nodes if tn not in upstream_tns and tn is not None]
         if len(upstream_tns) == 0:
             bus_branch_network.errors["pt_no_upstream_terminal"].ios.add(power_transformer)

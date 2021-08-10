@@ -11,9 +11,9 @@ from zepben.evolve import BusBranchNetworkCreationValidator, NetworkService, Ene
     PowerTransformer, PowerTransformerEnd, AcLineSegment, Terminal, \
     ConductingEquipment, PowerElectronicsConnection
 
-__all__ = ["PandaPowerNetworkValidator"]
+from pp_creators.utils import get_upstream_end_to_tns
 
-from pp_creators.utils import get_upstream_topological_nodes
+__all__ = ["PandaPowerNetworkValidator"]
 
 
 class PandaPowerNetworkValidator(BusBranchNetworkCreationValidator[pp.pandapowerNet, int, int, int, int, int, int]):
@@ -51,7 +51,7 @@ class PandaPowerNetworkValidator(BusBranchNetworkCreationValidator[pp.pandapower
     def is_valid_power_transformer_data(self, bus_branch_network: pp.pandapowerNet, power_transformer: PowerTransformer,
                                         ends_to_topological_nodes: List[Tuple[PowerTransformerEnd, Optional[int]]],
                                         node_breaker_network: NetworkService) -> bool:
-        has_single_upstream_connection = len(get_upstream_topological_nodes(ends_to_topological_nodes)) == 1
+        has_single_upstream_connection = len(get_upstream_end_to_tns(ends_to_topological_nodes)) == 1
         if not has_single_upstream_connection:
             self.logger.error(
                 f"PowerTransformer '{power_transformer.name}' doesn't have a single upstream connection to a network")

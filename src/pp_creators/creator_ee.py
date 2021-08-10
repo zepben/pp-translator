@@ -11,10 +11,10 @@ from zepben.evolve import Terminal, NetworkService, AcLineSegment, PowerTransfor
     PowerTransformerEnd, ConductingEquipment, \
     PowerElectronicsConnection, Location, BusBranchNetworkCreator, EnergySource
 
-__all__ = ["PandaPowerNetworkCreatorEE", "PpElement"]
-
-from pp_creators.utils import get_upstream_topological_nodes
+from pp_creators.utils import get_upstream_end_to_tns
 from pp_creators.validators.validator import PandaPowerNetworkValidator
+
+__all__ = ["PandaPowerNetworkCreatorEE", "PpElement"]
 
 
 class PpElement:
@@ -107,29 +107,33 @@ class PandaPowerNetworkCreatorEE(
             node_breaker_network: NetworkService
     ) -> Dict[str, PpElement]:
         mapped_elements: Dict[str, PpElement] = {}
-        tn_sorted_by_voltage: List[Tuple[PpElement, int]] = [(t, e.rated_u) for e, t in
-                                                             sorted(ends_to_topological_nodes,
-                                                                    key=lambda end_to_tn:
-                                                                    end_to_tn[0].rated_u,
-                                                                    reverse=True) if t is not None]
 
-        upstream_tn = get_upstream_topological_nodes(ends_to_topological_nodes)[0]
-        downstream_tn = [tn for (end, tn) in ends_to_topological_nodes if tn != upstream_tn][0]
+        upstream_end, upstream_tn = get_upstream_end_to_tns(ends_to_topological_nodes)[0]
+        downstream_end, downstream_tn = [(end, tn) for (end, tn) in ends_to_topological_nodes if tn != upstream_tn][0]
+
+        upstream_voltage = upstream_end.rated_u
+        downstream_voltage = downstream_end.rated_u
+
         if downstream_tn is None:
-            tn_sorted_by_voltage.append(
-                self._create_downstream_lv_network_and_bus(bus_branch_network, power_transformer, mapped_elements)
+            downstream_tn = self._create_downstream_lv_network_and_bus(
+                bus_branch_network,
+                power_transformer,
+                downstream_voltage,
+                mapped_elements
             )
 
         end = next(iter(power_transformer.ends))
         sn_mva = (1000000 if end.rated_s == 0 else end.rated_s) / 1000000
-        vn_hv_kv = tn_sorted_by_voltage[0][1] / 1000
-        vn_lv_kv = tn_sorted_by_voltage[1][1] / 1000
-        vector_group = "Dyn" if vn_lv_kv == vn_hv_kv else "Dyn"
+        vn_hv_kv = upstream_voltage / 1000
+        vn_lv_kv = downstream_voltage / 1000
+        vector_group = "Dyn"
 
         tx_idx = pp.create_transformer_from_parameters(
             bus_branch_network,
-            hv_bus=tn_sorted_by_voltage[0][0].index,
-            lv_bus=tn_sorted_by_voltage[1][0].index,
+            # NOTE: We are assigning busses based on upstream/downstream instead of hv/lv
+            # to handle regulators and step-up transformers.
+            hv_bus=upstream_tn.index,
+            lv_bus=downstream_tn.index,
             sn_mva=sn_mva,
             vn_hv_kv=vn_hv_kv,
             vn_lv_kv=vn_lv_kv,
@@ -149,14 +153,15 @@ class PandaPowerNetworkCreatorEE(
             self,
             bus_branch_network: pp.pandapowerNet,
             power_transformer: PowerTransformer,
+            downstream_voltage: int,
             mapped_elements: Dict[str, PpElement]
-    ) -> Tuple[PpElement, int]:
+    ) -> PpElement:
         # Create Bus
         coord: Tuple[float, float] = [(p.x_position, p.y_position) for p in power_transformer.location.points][0]
-        vn_v = 415
+
         bus_idx = pp.create_bus(
             bus_branch_network,
-            vn_kv=vn_v / 1000,
+            vn_kv=downstream_voltage / 1000,
             name=f"{power_transformer.name}_bus",
             geodata=coord
         )
@@ -186,7 +191,7 @@ class PandaPowerNetworkCreatorEE(
         mapped_elements[f"load:{load_idx}"] = PpElement(load_idx, "load")
         mapped_elements[f"sgen:{pv_load_idx}"] = PpElement(pv_load_idx, "sgen")
 
-        return bus_element, vn_v
+        return bus_element
 
     def energy_source_creator(
             self,
@@ -218,6 +223,7 @@ class PandaPowerNetworkCreatorEE(
             q_mvar=q / 1000000,
             name=energy_consumer.name
         )
+
         return {f"load:{load_idx}": PpElement(load_idx, "load")}
 
     def power_electronics_connection_creator(

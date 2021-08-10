@@ -13,7 +13,7 @@ from zepben.evolve import Terminal, NetworkService, AcLineSegment, PowerTransfor
 
 __all__ = ["PandaPowerNetworkCreator"]
 
-from pp_creators.utils import get_upstream_topological_nodes
+from pp_creators.utils import get_upstream_end_to_tns
 from pp_creators.validators.validator import PandaPowerNetworkValidator
 
 
@@ -71,7 +71,7 @@ class PandaPowerNetworkCreator(
             ends_to_topological_nodes: List[Tuple[PowerTransformerEnd, Optional[int]]],
             node_breaker_network: NetworkService
     ) -> Dict[str, int]:
-        upstream_tn = get_upstream_topological_nodes(ends_to_topological_nodes)[0]
+        upstream_end, upstream_tn = get_upstream_end_to_tns(ends_to_topological_nodes)[0]
         downstream_tn = [tn for (end, tn) in ends_to_topological_nodes if tn != upstream_tn][0]
 
         tx_idx = pp.create_transformer(
