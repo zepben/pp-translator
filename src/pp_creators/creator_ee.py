@@ -9,7 +9,7 @@ from typing import FrozenSet, Tuple, Iterable, List, Optional, Callable, Dict
 import pandapower as pp
 from zepben.evolve import Terminal, NetworkService, AcLineSegment, PowerTransformer, EnergyConsumer, \
     PowerTransformerEnd, ConductingEquipment, \
-    PowerElectronicsConnection, Location, BusBranchNetworkCreator, EnergySource
+    PowerElectronicsConnection, Location, BusBranchNetworkCreator, EnergySource, Switch, Junction, BusbarSection
 
 from pp_creators.utils import get_upstream_end_to_tns
 from pp_creators.validators.validator import PandaPowerNetworkValidator
@@ -243,6 +243,21 @@ class PandaPowerNetworkCreatorEE(
         )
 
         return {f"sgen:{load_idx}": PpElement(load_idx, "sgen")}
+
+    def has_negligible_impedance(self, ce: ConductingEquipment) -> bool:
+        if isinstance(ce, AcLineSegment):
+            if ce.length == 0 or ce.per_length_sequence_impedance.r == 0:
+                return True
+
+            if ce.length * ce.per_length_sequence_impedance.r < 0.005:
+                return True
+
+            return False
+        if isinstance(ce, Switch):
+            return not ce.is_open()
+        if isinstance(ce, Junction) or isinstance(ce, BusbarSection):
+            return True
+        return False
 
     def validator_creator(self) -> PandaPowerNetworkValidator:
         return PandaPowerNetworkValidator(logger=self.logger)
