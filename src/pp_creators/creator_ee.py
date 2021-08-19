@@ -108,8 +108,11 @@ class PandaPowerNetworkCreatorEE(
             length_km=length,
             r_ohm_per_km=line.per_length_sequence_impedance.r * 1000,
             x_ohm_per_km=line.per_length_sequence_impedance.x * 1000,
+            r0_ohm_per_km=line.per_length_sequence_impedance.r0 * 1000,
+            x0_ohm_per_km=line.per_length_sequence_impedance.x0 * 1000,
             max_i_ka=rating_ka,
             c_nf_per_km=0,
+            c0_nf_per_km=500,
             geodata=coords
         )
         return f"line:{line_idx}", PpElement(line_idx, "line")
