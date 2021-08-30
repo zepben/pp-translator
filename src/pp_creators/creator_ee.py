@@ -9,7 +9,7 @@ from typing import FrozenSet, Tuple, Iterable, List, Optional, Callable, Dict
 import pandapower as pp
 from zepben.evolve import Terminal, NetworkService, AcLineSegment, PowerTransformer, EnergyConsumer, \
     PowerTransformerEnd, ConductingEquipment, \
-    PowerElectronicsConnection, Location, BusBranchNetworkCreator, EnergySource, Switch, Junction, BusbarSection
+    PowerElectronicsConnection, Location, BusBranchNetworkCreator, EnergySource, Switch, Junction, BusbarSection, Meter
 
 from pp_creators.utils import get_upstream_end_to_tns
 from pp_creators.validators.validator import PandaPowerNetworkValidator
@@ -168,12 +168,16 @@ class PandaPowerNetworkCreatorEE(
         bus_element = PpElement(bus_idx, "bus")
 
         # Create Load
+        num_of_meters = len(
+            [ed for up in power_transformer.usage_points for ed in up.end_devices if isinstance(ed, Meter)]
+        )
+
         p, q = self.load_provider(power_transformer)
         load_idx = pp.create_load(
             bus_branch_network,
             bus=bus_idx,
-            p_mw=p / 1000000,
-            q_mvar=q / 1000000,
+            p_mw=(p * num_of_meters) / 1000000,
+            q_mvar=(q * num_of_meters) / 1000000,
             name=f"{power_transformer.name}_load",
         )
 
@@ -182,8 +186,8 @@ class PandaPowerNetworkCreatorEE(
         pv_load_idx = pp.create_sgen(
             bus_branch_network,
             bus=bus_idx,
-            p_mw=p / 1000000,
-            q_mvar=q / 1000000,
+            p_mw=(p * num_of_meters) / 1000000,
+            q_mvar=(q * num_of_meters) / 1000000,
             name=f"{power_transformer.name}_sgen",
         )
 
