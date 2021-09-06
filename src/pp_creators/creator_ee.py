@@ -33,12 +33,16 @@ class PandaPowerNetworkCreatorEE(
             logger: logging.Logger,
             vm_pu: float = 1.0,
             load_provider: Callable[[ConductingEquipment], Tuple[float, float]] = lambda x: (0, 0),
-            pec_load_provider: Callable[[ConductingEquipment], Tuple[float, float]] = lambda x: (0, 0)
+            pec_load_provider: Callable[[ConductingEquipment], Tuple[float, float]] = lambda x: (0, 0),
+            min_line_r_ohm: float = 0.001,
+            min_line_x_ohm: float = 0.001
     ):
         self.vm_pu = vm_pu
         self.logger = logger
         self.load_provider = load_provider
         self.pec_load_provider = pec_load_provider
+        self.min_line_r_ohm = min_line_r_ohm
+        self.min_line_x_ohm = min_line_x_ohm
 
     def bus_branch_network_creator(self, node_breaker_network: NetworkService) -> pp.pandapowerNet:
         return pp.create_empty_network()
@@ -253,7 +257,8 @@ class PandaPowerNetworkCreatorEE(
             if ce.length == 0 or ce.per_length_sequence_impedance.r == 0:
                 return True
 
-            if ce.length * ce.per_length_sequence_impedance.r < 0.005:
+            if ce.length * ce.per_length_sequence_impedance.r < self.min_line_r_ohm \
+                    or ce.length * ce.per_length_sequence_impedance.x < self.min_line_x_ohm:
                 return True
 
             return False
