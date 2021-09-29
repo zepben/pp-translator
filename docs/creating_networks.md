@@ -38,7 +38,7 @@ from sample_networks import simple_test_network
 ```
 async def main():
     node_breaker_model = await simple_test_network.simple_test_network()
-    creator = PandaPowerNetworkCreator(vm_pu=1.02, logger=logging.getLogger())
+    creator = PandaPowerNetworkCreator(vm_pu=1.02)
     result = await creator.create(node_breaker_model)
 
     pp_network = result.network

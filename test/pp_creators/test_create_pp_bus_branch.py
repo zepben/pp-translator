@@ -10,7 +10,7 @@ import pytest
 
 from src.pp_creators.creator import PandaPowerNetworkCreator
 # Refer to pandapower's simple 3-bus network example: https://www.pandapower.org/start/#a-short-introduction-
-from test.pp_test_utils import validate_pp_load_flow_results
+from test.pp_test_utils import validate_df
 
 
 @pytest.mark.asyncio
@@ -39,7 +39,7 @@ async def test_create_pp_bus_branch_model(simple_node_breaker_network):
         iter(result.mappings.to_bbn.objects[list(simple_node_breaker_network.get("load").terminals)[0].mrid]))
 
     # Validate and Log
-    validate_pp_load_flow_results(
+    validate_df(
         pp_network.bus,
         [
             {"name": "bus_None", "vn_kv": 0.4, "type": "b", "in_service": True, "zone": None},
@@ -50,7 +50,7 @@ async def test_create_pp_bus_branch_model(simple_node_breaker_network):
         log=True
     )
 
-    validate_pp_load_flow_results(
+    validate_df(
         pp_network.trafo,
         [
             {
@@ -83,7 +83,7 @@ async def test_create_pp_bus_branch_model(simple_node_breaker_network):
         log=True
     )
 
-    validate_pp_load_flow_results(
+    validate_df(
         pp_network.line,
         [
             {
@@ -107,7 +107,7 @@ async def test_create_pp_bus_branch_model(simple_node_breaker_network):
         log=True
     )
 
-    validate_pp_load_flow_results(
+    validate_df(
         pp_network.load,
         [
             {
@@ -127,7 +127,7 @@ async def test_create_pp_bus_branch_model(simple_node_breaker_network):
         log=True
     )
 
-    validate_pp_load_flow_results(
+    validate_df(
         pp_network.ext_grid,
         [
             {

@@ -10,10 +10,10 @@ import pandapower as pp
 # noinspection PyPackageRequirements
 from pandas import DataFrame
 
-__all__ = ["validate_pp_load_flow_results"]
+__all__ = ["validate_df"]
 
 
-def validate_pp_load_flow_results(
+def validate_df(
         actual_results: DataFrame,
         expected_result_values: List[Dict[str, Any]],
         title: str,
