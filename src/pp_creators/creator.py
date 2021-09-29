@@ -20,7 +20,7 @@ from pp_creators.validators.validator import PandaPowerNetworkValidator
 class PandaPowerNetworkCreator(
     BusBranchNetworkCreator[pp.pandapowerNet, int, int, int, int, int, int, PandaPowerNetworkValidator]):
 
-    def __init__(self, *, vm_pu: float = 1.0, logger: logging.Logger):
+    def __init__(self, *, vm_pu: float = 1.0, logger: logging.Logger = None):
         self.vm_pu = vm_pu
         self.logger = logger
 
