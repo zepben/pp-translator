@@ -14,7 +14,7 @@ test_deps = ["pytest", "pytest-cov", "pytest-asyncio", "hypothesis<6"]
 setup(
     name="pp-translator",
     description="Library for translating Zepben CIM network models to pandapower models",
-    version="0.1.0",
+    version="0.1.0b1",
     url="https://github.com/zepben/pp-translator",
     author="Zeppelin Bend",
     author_email="oss@zepben.com",
@@ -33,7 +33,7 @@ setup(
     python_requires='>=3.7',
     py_modules=[splitext(basename(path))[0] for path in glob('src/**/*.py')],
     install_requires=[
-        "zepben.evolve==0.25.0b1",
+        "zepben.evolve==0.25.0",
         "pandapower==2.7.0"
     ],
     extras_require={
