@@ -1,0 +1,57 @@
+name: Deploy snapshot to Pypi
+
+on:
+  push:
+    branches:
+      - main
+      - LTS/*
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    container: python:3.7
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          pip install tox twine
+
+      - name: Cache licence-check
+        uses: actions/cache@v2
+        with:
+          path: /lc
+          key: lcc
+
+      - name: Check licence
+        uses: zepben/licence-check-action@main
+        with:
+          LC_URL: ${{ secrets.LC_URL }}
+          PATH: src
+
+      - name: Build and publish
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          tox
+          twine upload dist/*
+        shell: bash
+
+  update-snapshot-version:
+    needs: deploy
+    runs-on: ubuntu-latest
+    container: zepben/pipeline-basic:5.1.0
+    env:
+      GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Update snapshot version
+        run: |
+          git pull origin $GITHUB_REF
+          source /scripts/common.sh
+          /scripts/update-version.sh --python --snapshot setup.py
+        shell: bash
