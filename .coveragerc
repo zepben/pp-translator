@@ -1,0 +1,12 @@
+[run]
+source = pp_creators
+
+[paths]
+source = src/
+
+[report]
+fail_under = 10
+skip_empty = True
+skip_covered = True
+exclude_lines =
+    if TYPE_CHECKING:
