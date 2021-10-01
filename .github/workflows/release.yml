@@ -61,7 +61,7 @@ jobs:
           tox
           twine upload dist/*
           version=$(grep version setup.py | cut -d= -f2 | tr -d '",')
-          artifact="pp-translator-${version}-py3-none-any.whl"
+          artifact="pp_translator-${version}-py3-none-any.whl"
           echo "::set-output name=version::$(echo $version)"
           echo "::set-output name=artifact::$(echo $artifact)"
           echo "::set-output name=artifact-path::$(echo dist/$artifact)"
