@@ -1,7 +1,7 @@
-### v0.1.0
+### v0.3.0
 
 ##### Breaking Changes
-* None
+* None.
 
 ##### New Features
 * None.
