@@ -14,7 +14,7 @@ test_deps = ["pytest", "pytest-cov", "pytest-asyncio", "hypothesis<6"]
 setup(
     name="pp-translator",
     description="Library for translating Zepben CIM network models to pandapower models",
-    version="0.2.0b2",
+    version="0.2.0",
     url="https://github.com/zepben/pp-translator",
     author="Zeppelin Bend",
     author_email="oss@zepben.com",
