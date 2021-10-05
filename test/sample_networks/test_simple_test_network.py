@@ -43,7 +43,6 @@ def test_simple_test_network(pp_network: pandapower.pandapowerNet):
         log=True
     )
 
-    # todo: investigate why hv_bus and lv_bus is not repeatable attibute.
 
     validate_df(
         pp_network.trafo,
@@ -77,8 +76,6 @@ def test_simple_test_network(pp_network: pandapower.pandapowerNet):
         "trafo",
         log=True
     )
-
-    # todo: investigate why from_bus to _bus is array x 2
 
     validate_df(
         pp_network.line,
