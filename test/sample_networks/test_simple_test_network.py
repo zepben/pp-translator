@@ -51,8 +51,8 @@ def test_simple_test_network(pp_network: pandapower.pandapowerNet):
             {
                 "name": "Transformer",
                 "std_type": "0.4 MVA 20/0.4 kV",
-                "hv_bus": 2,
-                "lv_bus": 1,
+                "hv_bus": [0, 1, 2],
+                "lv_bus": [0, 1, 2],
                 "sn_mva": 0.4,
                 "vn_hv_kv": 20.0,
                 "vn_lv_kv": 0.4,
@@ -86,8 +86,8 @@ def test_simple_test_network(pp_network: pandapower.pandapowerNet):
             {
                 "name": "line_None",
                 "std_type": "NAYY 4x50 SE",
-                "from_bus": [1, 0],
-                "to_bus": [1, 0],
+                "from_bus": [0, 1, 2],
+                "to_bus": [0, 1, 2],
                 "length_km": 0.1,
                 "r_ohm_per_km": 0.642,
                 "x_ohm_per_km": 0.083,
@@ -109,7 +109,7 @@ def test_simple_test_network(pp_network: pandapower.pandapowerNet):
         [
             {
                 "name": "Load",
-                "bus": 0,
+                "bus": [0, 1, 2],
                 "p_mw": 0.1,
                 "q_mvar": 0.05,
                 "const_z_percent": 0.0,
@@ -129,7 +129,7 @@ def test_simple_test_network(pp_network: pandapower.pandapowerNet):
         [
             {
                 "name": "Grid Connection",
-                "bus": 2,
+                "bus": [0, 1, 2],
                 "vm_pu": 1.02,
                 "va_degree": 0.0,
                 "in_service": True
