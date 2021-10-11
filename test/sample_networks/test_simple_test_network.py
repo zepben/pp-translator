@@ -1,8 +1,8 @@
 import pandapower
 import pytest
+from zepben.evolve.examples import simple_test_network
 
 from pp_creators.creator import PandaPowerNetworkCreator
-from sample_networks import simple_test_network
 from test.pp_test_utils import validate_df
 
 
@@ -32,6 +32,9 @@ def test_simple_test_network(pp_network: pandapower.pandapowerNet):
     assert len(pp_network.load) == 1
 
     # Validate and Log
+
+    # Bus
+
     validate_df(
         pp_network.bus,
         [
@@ -43,6 +46,7 @@ def test_simple_test_network(pp_network: pandapower.pandapowerNet):
         log=True
     )
 
+    # Transformer
 
     validate_df(
         pp_network.trafo,
@@ -77,6 +81,8 @@ def test_simple_test_network(pp_network: pandapower.pandapowerNet):
         log=True
     )
 
+    # Line
+
     validate_df(
         pp_network.line,
         [
@@ -101,6 +107,8 @@ def test_simple_test_network(pp_network: pandapower.pandapowerNet):
         log=True
     )
 
+    # Load
+
     validate_df(
         pp_network.load,
         [
@@ -121,6 +129,8 @@ def test_simple_test_network(pp_network: pandapower.pandapowerNet):
         log=True
     )
 
+    # Slack Bus
+
     validate_df(
         pp_network.ext_grid,
         [
@@ -136,12 +146,75 @@ def test_simple_test_network(pp_network: pandapower.pandapowerNet):
         log=True
     )
 
+    # Load flow validation
 
-def test_simple_test_network_load_flow(pp_network: pandapower.pandapowerNet):
     pandapower.runpp(pp_network)
     assert len(pp_network.res_bus) == 3
     assert len(pp_network.res_line) == 1
     assert len(pp_network.res_trafo) == 1
     assert len(pp_network.res_ext_grid) == 1
     assert len(pp_network.res_load) == 1
-    # todo: Finish load flow results validation
+
+    # Bus results
+
+    validate_df(
+        pp_network.res_bus,
+        [
+            {"vm_pu": 1.0088427233128725, "va_degree": -0.760125718616866, "p_mw": 0.000000, "q_mvar": 0.000000},
+            {"vm_pu": 0.9644305728933401, "va_degree": 0.11585861401564011, "p_mw": 0.100000, "q_mvar": 0.050000},
+            {"vm_pu": 1.020000, "va_degree": 0.000000, "p_mw": -0.10726539055005266, "q_mvar": -0.05267519521321317},
+        ],
+        "res_bus",
+        log=True
+    )
+
+    # Line results
+
+    validate_df(
+        pp_network.res_line,
+        [
+            {"p_from_mw": 0.10539239122743502, "q_from_mvar": 0.05069611896419347, "p_to_mw": -0.09999999976783382,
+             "q_to_mvar": -0.04999999985382754, "pl_mw": 0.005392391459601201, "ql_mvar": 0.0006961191103659337,
+             "i_from_ka": 0.16732533378705575, "i_to_ka": 0.167325995497805, "i_ka": 0.167325995497805,
+             "vm_from_pu": 1.0088427233128725, "va_from_degree": -0.760125718616866, "vm_to_pu": 0.9644305728933401,
+             "va_to_degree": 0.11585861401564011, "loading_percent": 117.83520809704578},
+        ],
+        "res_line",
+        log=True
+    )
+
+    # Transformer Results
+
+    validate_df(
+        pp_network.res_trafo,
+        [
+            {"p_hv_mw": 0.10726539055005266, "q_hv_mvar": 0.05267519521321317, "p_lv_mw": -0.1053923911853459,
+             "q_lv_mvar": -0.05069611903719688, "pl_mw": 0.001872999364706765, "ql_mvar": 0.001979076176016288,
+             "i_hv_ka": 0.00338206167645762, "i_lv_ka": 0.16732533377806555, "vm_hv_pu": 1.02, "va_hv_degree": 0.0,
+             "vm_lv_pu": 1.0088427233128725, "va_lv_degree": -0.760125718616866, "loading_percent": 29.289513289780857},
+        ],
+        "res_trafo",
+        log=True
+    )
+
+    # Slack bus results
+
+    validate_df(
+        pp_network.res_ext_grid,
+        [
+            {"p_mw": 0.10726539055005266, "q_mvar": 0.05267519521321317},
+        ],
+        "res_ext_grid",
+        log=True
+    )
+
+    # Load results
+
+    validate_df(
+        pp_network.res_load,
+        [
+            {"p_mw": 0.1, "q_mvar": 0.05},
+        ],
+        "res_load",
+        log=True
+    )
