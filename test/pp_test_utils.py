@@ -3,10 +3,10 @@
 #  This Source Code Form is subject to the terms of the Mozilla Public
 #  License, v. 2.0. If a copy of the MPL was not distributed with this
 #  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+import math
 from functools import reduce
 from typing import Dict, List, Any
 
-import pandapower as pp
 # noinspection PyPackageRequirements
 from pandas import DataFrame
 
@@ -59,9 +59,16 @@ def _assert_dicts_are_equal(a: Dict, b: Dict):
             assert _compare_values(a_i, b_i), f"actual {k} value of {a_i} is different to expected {k} value of {b_i}"
 
 
-def _compare_values(a, b) -> bool:
-    if isinstance(a, float) and pp.isnan(a):
-        return isinstance(b, float) and pp.isnan(b)
+def _compare_values(a, b, tolerance=1e-8):
+
+    if isinstance(a, float):
+        if a == 0.0:
+            return str(a) == str(b)
+        elif math.isnan(a):
+            return math.isnan(b)
+        return abs(a - b) < tolerance
+    elif isinstance(a, str):
+        return isinstance(b, str)
     else:
         return a == b
 

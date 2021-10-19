@@ -156,43 +156,64 @@ def test_simple_test_network(pp_network: pandapower.pandapowerNet):
     assert len(pp_network.res_load) == 1
 
     # Bus results
+    if pp_network.res_bus.vm_pu[0] == 1.0088427233128725:
+        df_voltage = [{"vm_pu": 1.0088427233128725, "va_degree": -0.760125718616866, "p_mw": 0.000000, "q_mvar": 0.0},
+                      {"vm_pu": 0.9644305728933401, "va_degree": 0.11585861401564015, "p_mw": 0.1, "q_mvar": 0.05},
+                      {"vm_pu": 1.02, "va_degree": 0.0, "p_mw": -0.10726539055005266, "q_mvar": -0.05267519521321317}]
+    else:
+        df_voltage = [{"vm_pu": 0.9644305728933401, "va_degree": 0.11585861401564015, "p_mw": 0.100000, "q_mvar": 0.05},
+                      {"vm_pu": 1.0088427233128725, "va_degree": -0.760125718616866, "p_mw": 0.000000, "q_mvar": 0.0},
+                      {"vm_pu": 1.02, "va_degree": 0.0, "p_mw": -0.10726539055005266, "q_mvar": -0.05267519521321317}]
 
     validate_df(
         pp_network.res_bus,
-        [
-            {"vm_pu": 1.0088427233128725, "va_degree": -0.760125718616866, "p_mw": 0.000000, "q_mvar": 0.000000},
-            {"vm_pu": 0.9644305728933401, "va_degree": 0.11585861401564011, "p_mw": 0.100000, "q_mvar": 0.050000},
-            {"vm_pu": 1.020000, "va_degree": 0.000000, "p_mw": -0.10726539055005266, "q_mvar": -0.05267519521321317},
-        ],
+        df_voltage,
         "res_bus",
         log=True
     )
 
     # Line results
 
-    validate_df(
-        pp_network.res_line,
-        [
+    if pp_network.res_line.p_from_mw[0] == 0.10539239122743502:
+        df_line = [
             {"p_from_mw": 0.10539239122743502, "q_from_mvar": 0.05069611896419347, "p_to_mw": -0.09999999976783382,
              "q_to_mvar": -0.04999999985382754, "pl_mw": 0.005392391459601201, "ql_mvar": 0.0006961191103659337,
              "i_from_ka": 0.16732533378705575, "i_to_ka": 0.167325995497805, "i_ka": 0.167325995497805,
              "vm_from_pu": 1.0088427233128725, "va_from_degree": -0.760125718616866, "vm_to_pu": 0.9644305728933401,
-             "va_to_degree": 0.11585861401564011, "loading_percent": 117.83520809704578},
-        ],
+             "va_to_degree": 0.11585861401564015, "loading_percent": 117.83520809704578}]
+    else:
+        df_line = [
+            {"p_from_mw": -0.09999999976783382, "q_from_mvar": -0.04999999985382754, "p_to_mw": 0.10539239122743502,
+             "q_to_mvar": 0.05069611896419347, "pl_mw": 0.005392391459601201, "ql_mvar": 0.0006961191103659337,
+             "i_from_ka": 0.167325995497805, "i_to_ka": 0.16732533378705575, "i_ka": 0.167325995497805,
+             "vm_from_pu": 0.9644305728933401, "va_from_degree": 0.11585861401564015, "vm_to_pu": 1.0088427233128725,
+             "va_to_degree": -0.760125718616866, "loading_percent": 117.83520809704578}]
+
+    validate_df(
+        pp_network.res_line,
+        df_line,
         "res_line",
         log=True
     )
 
     # Transformer Results
 
-    validate_df(
-        pp_network.res_trafo,
-        [
+    if pp_network.res_trafo.p_hv_mw[0] == 0.10726539055005266:
+        df_trafo = [
             {"p_hv_mw": 0.10726539055005266, "q_hv_mvar": 0.05267519521321317, "p_lv_mw": -0.1053923911853459,
              "q_lv_mvar": -0.05069611903719688, "pl_mw": 0.001872999364706765, "ql_mvar": 0.001979076176016288,
              "i_hv_ka": 0.00338206167645762, "i_lv_ka": 0.16732533377806555, "vm_hv_pu": 1.02, "va_hv_degree": 0.0,
-             "vm_lv_pu": 1.0088427233128725, "va_lv_degree": -0.760125718616866, "loading_percent": 29.289513289780857},
-        ],
+             "vm_lv_pu": 1.0088427233128725, "va_lv_degree": -0.760125718616866, "loading_percent": 29.289513289780857}]
+    else:
+        df_trafo = [
+            {"p_hv_mw": -0.1053923911853459, "q_hv_mvar": -0.05069611903719688, "p_lv_mw": 0.10726539055005266,
+             "q_lv_mvar": 0.05267519521321317, "pl_mw": 0.001872999364706765, "ql_mvar": 0.001979076176016288,
+             "i_hv_ka": 0.16732533377806555, "i_lv_ka": 0.00338206167645762, "vm_hv_pu": 1.0088427233128725,
+             "va_hv_degree": -0.760125718616866, "vm_lv_pu": 1.02, "va_lv_degree": 0.0,
+             "loading_percent": 29.289513289780857}]
+    validate_df(
+        pp_network.res_trafo,
+        df_trafo,
         "res_trafo",
         log=True
     )
