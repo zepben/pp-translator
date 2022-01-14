@@ -9,7 +9,7 @@ from typing import FrozenSet, Tuple, Iterable, List, Optional, Callable, Dict
 import pandapower as pp
 from zepben.evolve import Terminal, NetworkService, AcLineSegment, PowerTransformer, EnergyConsumer, \
     PowerTransformerEnd, ConductingEquipment, \
-    PowerElectronicsConnection, Location, BusBranchNetworkCreator, EnergySource, Switch, Junction, BusbarSection
+    PowerElectronicsConnection, Location, BusBranchNetworkCreator, EnergySource, Switch, Junction, EquivalentBranch
 
 from pp_creators.utils import get_upstream_end_to_tns
 from pp_creators.validators.validator import PandaPowerNetworkValidator
@@ -24,7 +24,7 @@ class PpElement:
 
 
 class PandaPowerNetworkCreatorEE(
-    BusBranchNetworkCreator[pp.pandapowerNet, PpElement, PpElement, PpElement, PpElement, PpElement, PpElement,
+    BusBranchNetworkCreator[pp.pandapowerNet, PpElement, PpElement, PpElement, PpElement, PpElement, PpElement, PpElement,
                             PandaPowerNetworkValidator]
 ):
 
@@ -65,7 +65,7 @@ class PandaPowerNetworkCreatorEE(
             bus_branch_network,
             vn_kv=vn_v / 1000,
             name=f"bus_{_create_id_from_terminals(border_terminals)}",
-            geodata=coords[0]
+            geodata=coords[0] if len(coords) else None
         )
         return f"bus:{bus_idx}", PpElement(bus_idx, "bus")
 
@@ -87,7 +87,7 @@ class PandaPowerNetworkCreatorEE(
 
         # TODO: The source data has 0 rating lines so we need to add a hack here to make them rated for 1 amp.
         #  Otherwise the pandapower load flow will fail to run due to a division by 0
-        rating_ka = (1 if line.wire_info.rated_current == 0 else line.wire_info.rated_current) / 1000
+        rating_ka = (1 if line.wire_info is None or line.wire_info.rated_current == 0 else line.wire_info.rated_current) / 1000
 
         line_idx = pp.create_line_from_parameters(
             bus_branch_network,
@@ -100,6 +100,24 @@ class PandaPowerNetworkCreatorEE(
             max_i_ka=rating_ka,
             c_nf_per_km=0,
             geodata=coords
+        )
+        return f"line:{line_idx}", PpElement(line_idx, "line")
+
+    def equivalent_branch_creator(self, bus_branch_network: pp.pandapowerNet, connected_topological_nodes: List[PpElement], equivalent_branch: EquivalentBranch,
+                                  node_breaker_network: NetworkService) -> Tuple[str, PpElement]:
+        length = 1.5
+        rating_ka = 1
+
+        line_idx = pp.create_line_from_parameters(
+            bus_branch_network,
+            name=f"{equivalent_branch.mrid}_eb",
+            from_bus=connected_topological_nodes[0].index,
+            to_bus=connected_topological_nodes[1].index,
+            length_km=length,
+            r_ohm_per_km=self.min_line_r_ohm,
+            x_ohm_per_km=self.min_line_x_ohm,
+            max_i_ka=rating_ka,
+            c_nf_per_km=0
         )
         return f"line:{line_idx}", PpElement(line_idx, "line")
 
@@ -260,7 +278,9 @@ class PandaPowerNetworkCreatorEE(
             return False
         if isinstance(ce, Switch):
             return not ce.is_open()
-        if isinstance(ce, Junction) or isinstance(ce, BusbarSection):
+        if isinstance(ce, Junction):
+            return True
+        if isinstance(ce, EquivalentBranch):
             return True
         return False
 

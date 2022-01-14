@@ -10,14 +10,14 @@ from typing import List, Tuple, Optional, FrozenSet
 import pandapower as pp
 from zepben.evolve import BusBranchNetworkCreationValidator, NetworkService, EnergyConsumer, EnergySource, \
     PowerTransformer, PowerTransformerEnd, AcLineSegment, Terminal, \
-    ConductingEquipment, PowerElectronicsConnection
+    ConductingEquipment, PowerElectronicsConnection, EquivalentBranch
 
 from pp_creators.utils import get_upstream_end_to_tns
 
 __all__ = ["PandaPowerNetworkValidator"]
 
 
-class PandaPowerNetworkValidator(BusBranchNetworkCreationValidator[pp.pandapowerNet, int, int, int, int, int, int]):
+class PandaPowerNetworkValidator(BusBranchNetworkCreationValidator[pp.pandapowerNet, int, int, int, int, int, int, int]):
     logger: logging.Logger
 
     def __init__(self, logger: logging.Logger):
@@ -47,6 +47,10 @@ class PandaPowerNetworkValidator(BusBranchNetworkCreationValidator[pp.pandapower
             return False
         if length == 0:
             self.logger.warning(f"Branch with total length of 0: {[acls.mrid for acls in collapsed_ac_line_segments]}")
+        return True
+
+    def is_valid_equivalent_branch_data(self, bus_branch_network: pp.pandapowerNet, connected_topological_nodes: List[int], equivalent_branch: EquivalentBranch,
+                                        node_breaker_network: NetworkService) -> bool:
         return True
 
     def is_valid_power_transformer_data(self, bus_branch_network: pp.pandapowerNet, power_transformer: PowerTransformer,
