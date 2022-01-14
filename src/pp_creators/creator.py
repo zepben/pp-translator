@@ -9,7 +9,7 @@ from typing import FrozenSet, Tuple, Iterable, List, Optional, Dict
 import pandapower as pp
 from zepben.evolve import Terminal, NetworkService, AcLineSegment, PowerTransformer, EnergySource, EnergyConsumer, \
     BusBranchNetworkCreator, \
-    PowerTransformerEnd, ConductingEquipment, PowerElectronicsConnection
+    PowerTransformerEnd, ConductingEquipment, PowerElectronicsConnection, EquivalentBranch
 
 __all__ = ["PandaPowerNetworkCreator"]
 
@@ -17,8 +17,7 @@ from pp_creators.utils import get_upstream_end_to_tns
 from pp_creators.validators.validator import PandaPowerNetworkValidator
 
 
-class PandaPowerNetworkCreator(
-    BusBranchNetworkCreator[pp.pandapowerNet, int, int, int, int, int, int, PandaPowerNetworkValidator]):
+class PandaPowerNetworkCreator(BusBranchNetworkCreator[pp.pandapowerNet, int, int, int, int, int, int, int, PandaPowerNetworkValidator]):
 
     def __init__(self, *, vm_pu: float = 1.0, logger: logging.Logger):
         self.vm_pu = vm_pu
@@ -63,6 +62,10 @@ class PandaPowerNetworkCreator(
             std_type="NAYY 4x50 SE"
         )
         return line_idx, line_idx
+
+    def equivalent_branch_creator(self, bus_branch_network: pp.pandapowerNet, connected_topological_nodes: List[int], equivalent_branch: EquivalentBranch,
+                                  node_breaker_network: NetworkService) -> Dict[str, int]:
+        pass
 
     def power_transformer_creator(
             self,
