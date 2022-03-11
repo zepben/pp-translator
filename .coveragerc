@@ -5,7 +5,7 @@ source = pp_creators
 source = src/
 
 [report]
-fail_under = 10
+fail_under = 0
 skip_empty = True
 skip_covered = True
 exclude_lines =
