@@ -32,15 +32,17 @@ class PandaPowerNetworkCreator(
             self, *,
             logger: logging.Logger,
             vm_pu: float = 1.0,
-            load_provider: Callable[[ConductingEquipment], Tuple[float, float]] = lambda x: (0, 0),
-            pec_load_provider: Callable[[ConductingEquipment], Tuple[float, float]] = lambda x: (0, 0),
+            tx_load_provider: Callable[[PowerTransformer], Tuple[float, float]] = lambda x: (0, 0),
+            ec_load_provider: Callable[[EnergyConsumer], Tuple[float, float]] = lambda x: (0, 0),
+            pec_sgen_provider: Callable[[PowerElectronicsConnection], Tuple[float, float]] = lambda x: (0, 0),
             min_line_r_ohm: float = 0.001,
             min_line_x_ohm: float = 0.001
     ):
         self.vm_pu = vm_pu
         self.logger = logger
-        self.load_provider = load_provider
-        self.pec_load_provider = pec_load_provider
+        self.tx_load_provider = tx_load_provider
+        self.ec_load_provider = ec_load_provider
+        self.pec_sgen_provider = pec_sgen_provider
         self.min_line_r_ohm = min_line_r_ohm
         self.min_line_x_ohm = min_line_x_ohm
 
@@ -189,29 +191,28 @@ class PandaPowerNetworkCreator(
         )
         bus_element = PpElement(bus_idx, "bus")
 
-        # Create Load
-        p, q = self.load_provider(power_transformer)
-        load_idx = pp.create_load(
-            bus_branch_network,
-            bus=bus_idx,
-            p_mw=p / 1000000,
-            q_mvar=q / 1000000,
-            name=f"{power_transformer.name}_load",
-        )
-
-        # Create PV
-        p, q = self.pec_load_provider(power_transformer)
-        pv_load_idx = pp.create_sgen(
-            bus_branch_network,
-            bus=bus_idx,
-            p_mw=p / 1000000,
-            q_mvar=q / 1000000,
-            name=f"{power_transformer.name}_sgen",
-        )
+        # Create load or sgen or nothing depending on p
+        p, q = self.tx_load_provider(power_transformer)
+        if p > 0:
+            load_idx = pp.create_load(
+                bus_branch_network,
+                bus=bus_idx,
+                p_mw=p / 1000000,
+                q_mvar=q / 1000000,
+                name=f"{power_transformer.name}_load",
+            )
+            mapped_elements[f"load:{load_idx}"] = PpElement(load_idx, "load")
+        elif p < 0:
+            sgen_idx = pp.create_sgen(
+                bus_branch_network,
+                bus=bus_idx,
+                p_mw=-p / 1000000,
+                q_mvar=-q / 1000000,
+                name=f"{power_transformer.name}_sgen",
+            )
+            mapped_elements[f"sgen:{sgen_idx}"] = PpElement(sgen_idx, "sgen")
 
         mapped_elements[f"bus:{bus_idx}"] = bus_element
-        mapped_elements[f"load:{load_idx}"] = PpElement(load_idx, "load")
-        mapped_elements[f"sgen:{pv_load_idx}"] = PpElement(pv_load_idx, "sgen")
 
         return bus_element
 
@@ -237,16 +238,25 @@ class PandaPowerNetworkCreator(
             connected_topological_node: PpElement,
             node_breaker_network: NetworkService
     ) -> Dict[str, PpElement]:
-        p, q = self.load_provider(energy_consumer)
-        load_idx = pp.create_load(
-            bus_branch_network,
-            bus=connected_topological_node.index,
-            p_mw=p / 1000000,
-            q_mvar=q / 1000000,
-            name=energy_consumer.name
-        )
-
-        return {f"load:{load_idx}": PpElement(load_idx, "load")}
+        p, q = self.ec_load_provider(energy_consumer)
+        if p > 0:
+            load_idx = pp.create_load(
+                bus_branch_network,
+                bus=connected_topological_node.index,
+                p_mw=p / 1000000,
+                q_mvar=q / 1000000,
+                name=f"{energy_consumer.name}_load"
+            )
+            return {f"load:{load_idx}": PpElement(load_idx, "load")}
+        elif p < 0:
+            sgen_idx = pp.create_sgen(
+                bus_branch_network,
+                bus=connected_topological_node.index,
+                p_mw=-p / 1000000,
+                q_mvar=-q / 1000000,
+                name=f"{energy_consumer.name}_sgen"
+            )
+            return {f"sgen:{sgen_idx}": PpElement(sgen_idx, "load")}
 
     def power_electronics_connection_creator(
             self,
@@ -255,16 +265,25 @@ class PandaPowerNetworkCreator(
             connected_topological_node: PpElement,
             node_breaker_network: NetworkService,
     ) -> Dict[str, PpElement]:
-        p, q = self.pec_load_provider(power_electronics_connection)
-        load_idx = pp.create_sgen(
-            bus_branch_network,
-            bus=connected_topological_node.index,
-            p_mw=p / 1000000,
-            q_mvar=q / 1000000,
-            name=power_electronics_connection.name
-        )
-
-        return {f"sgen:{load_idx}": PpElement(load_idx, "sgen")}
+        p, q = self.pec_sgen_provider(power_electronics_connection)
+        if p > 0:
+            sgen_idx = pp.create_sgen(
+                bus_branch_network,
+                bus=connected_topological_node.index,
+                p_mw=p / 1000000,
+                q_mvar=q / 1000000,
+                name=f"{power_electronics_connection.name}_sgen"
+            )
+            return {f"sgen:{sgen_idx}": PpElement(sgen_idx, "sgen")}
+        elif p < 0:
+            load_idx = pp.create_load(
+                bus_branch_network,
+                bus=connected_topological_node.index,
+                p_mw=-p / 1000000,
+                q_mvar=-q / 1000000,
+                name=f"{power_electronics_connection.name}_load"
+            )
+            return {f"load:{load_idx}": PpElement(load_idx, "load")}
 
     def has_negligible_impedance(self, ce: ConductingEquipment) -> bool:
         if isinstance(ce, AcLineSegment):
