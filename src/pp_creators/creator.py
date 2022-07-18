@@ -106,17 +106,16 @@ class PandaPowerNetworkCreator(
     def equivalent_branch_creator(self, bus_branch_network: pp.pandapowerNet,
                                   connected_topological_nodes: List[PpElement], equivalent_branch: EquivalentBranch,
                                   node_breaker_network: NetworkService) -> Tuple[str, PpElement]:
-        length = 1.5
-        rating_ka = 1
+        rating_ka = 1  # Equivalent branches have no rating, so we default to 1kA
 
         line_idx = pp.create_line_from_parameters(
             bus_branch_network,
             name=f"{equivalent_branch.mrid}_eb",
             from_bus=connected_topological_nodes[0].index,
             to_bus=connected_topological_nodes[1].index,
-            length_km=length,
-            r_ohm_per_km=self.min_line_r_ohm,
-            x_ohm_per_km=self.min_line_x_ohm,
+            length_km=1,
+            r_ohm_per_km=max(equivalent_branch.r, self.min_line_r_ohm),
+            x_ohm_per_km=max(equivalent_branch.x, self.min_line_x_ohm),
             max_i_ka=rating_ka,
             c_nf_per_km=0
         )
