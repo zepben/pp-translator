@@ -33,8 +33,8 @@ setup(
     python_requires='>=3.7',
     py_modules=[splitext(basename(path))[0] for path in glob('src/**/*.py')],
     install_requires=[
-        "zepben.evolve==0.27.1",
-        "pandapower==2.7.0"
+        "zepben.evolve==0.28.0b11",
+        "pandapower==2.9.0"
     ],
     extras_require={
         "test": test_deps,
