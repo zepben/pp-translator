@@ -45,7 +45,7 @@ class PandaPowerNetworkCreator(
         self.ec_load_provider = ec_load_provider
         self.pec_sgen_provider = pec_sgen_provider
         self.min_line_r_ohm = min_line_r_ohm
-        self.min_line_x_ohm = min_line_x_ohm,
+        self.min_line_x_ohm = min_line_x_ohm
         self.include_tap_changers = include_tap_changers
 
     def bus_branch_network_creator(self, node_breaker_network: NetworkService) -> pp.pandapowerNet:
