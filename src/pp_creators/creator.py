@@ -36,7 +36,8 @@ class PandaPowerNetworkCreator(
             ec_load_provider: Callable[[EnergyConsumer], Tuple[float, float]] = lambda x: (0, 0),
             pec_sgen_provider: Callable[[PowerElectronicsConnection], Tuple[float, float]] = lambda x: (0, 0),
             min_line_r_ohm: float = 0.001,
-            min_line_x_ohm: float = 0.001
+            min_line_x_ohm: float = 0.001,
+            include_tap_changers: bool = True
     ):
         self.vm_pu = vm_pu
         self.logger = logger
@@ -44,7 +45,8 @@ class PandaPowerNetworkCreator(
         self.ec_load_provider = ec_load_provider
         self.pec_sgen_provider = pec_sgen_provider
         self.min_line_r_ohm = min_line_r_ohm
-        self.min_line_x_ohm = min_line_x_ohm
+        self.min_line_x_ohm = min_line_x_ohm,
+        self.include_tap_changers = include_tap_changers
 
     def bus_branch_network_creator(self, node_breaker_network: NetworkService) -> pp.pandapowerNet:
         return pp.create_empty_network()
@@ -153,6 +155,18 @@ class PandaPowerNetworkCreator(
         vn_lv_kv = downstream_voltage / 1000
         vector_group = "Dyn"
 
+        tap_changer_kwargs = dict()
+        tap_changer = upstream_end.ratio_tap_changer or downstream_end.ratio_tap_changer
+        if self.include_tap_changers and tap_changer:
+            tap_changer_kwargs.update({
+                "tap_min": tap_changer.low_step,
+                "tap_max": tap_changer.high_step,
+                "tap_neutral": tap_changer.neutral_step,
+                "tap_pos": tap_changer.normal_step,
+                "tap_step_percent": tap_changer.step_voltage_increment,
+                "tap_side": "hv" if tap_changer.transformer_end is upstream_end else "lv"
+            })
+
         tx_idx = pp.create_transformer_from_parameters(
             bus_branch_network,
             # NOTE: We are assigning busses based on upstream/downstream instead of hv/lv
@@ -162,11 +176,12 @@ class PandaPowerNetworkCreator(
             sn_mva=sn_mva,
             vn_hv_kv=vn_hv_kv,
             vn_lv_kv=vn_lv_kv,
-            vk_percent=0.01,
-            vkr_percent=0.005,
+            vk_percent=5,
+            vkr_percent=2.5,
             pfe_kw=0,
             i0_percent=0,
             vector_group=vector_group,
+            **tap_changer_kwargs,
             name=power_transformer.name
         )
 
