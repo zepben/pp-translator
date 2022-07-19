@@ -14,7 +14,7 @@ from zepben.evolve import Terminal, NetworkService, AcLineSegment, PowerTransfor
 from pp_creators.utils import get_upstream_end_to_tns
 from pp_creators.validators.validator import PandaPowerNetworkValidator
 
-__all__ = ["PandaPowerNetworkCreator", "PpElement"]
+__all__ = ["BasicPandaPowerNetworkCreator", "PpElement"]
 
 
 class PpElement:
@@ -23,7 +23,7 @@ class PpElement:
         self.type = type
 
 
-class PandaPowerNetworkCreator(
+class BasicPandaPowerNetworkCreator(
     BusBranchNetworkCreator[pp.pandapowerNet, PpElement, PpElement, PpElement, PpElement, PpElement, PpElement,
                             PpElement, PandaPowerNetworkValidator]
 ):
@@ -34,7 +34,7 @@ class PandaPowerNetworkCreator(
             vm_pu: float = 1.0,
             tx_load_provider: Callable[[PowerTransformer], Tuple[float, float]] = lambda x: (0, 0),
             ec_load_provider: Callable[[EnergyConsumer], Tuple[float, float]] = lambda x: (0, 0),
-            pec_sgen_provider: Callable[[PowerElectronicsConnection], Tuple[float, float]] = lambda x: (0, 0),
+            pec_load_provider: Callable[[PowerElectronicsConnection], Tuple[float, float]] = lambda x: (0, 0),
             min_line_r_ohm: float = 0.001,
             min_line_x_ohm: float = 0.001,
             include_tap_changers: bool = True
@@ -43,7 +43,7 @@ class PandaPowerNetworkCreator(
         self.logger = logger
         self.tx_load_provider = tx_load_provider
         self.ec_load_provider = ec_load_provider
-        self.pec_sgen_provider = pec_sgen_provider
+        self.pec_load_provider = pec_load_provider
         self.min_line_r_ohm = min_line_r_ohm
         self.min_line_x_ohm = min_line_x_ohm
         self.include_tap_changers = include_tap_changers
@@ -281,25 +281,25 @@ class PandaPowerNetworkCreator(
             connected_topological_node: PpElement,
             node_breaker_network: NetworkService,
     ) -> Dict[str, PpElement]:
-        p, q = self.pec_sgen_provider(power_electronics_connection)
+        p, q = self.pec_load_provider(power_electronics_connection)
         if p > 0:
-            sgen_idx = pp.create_sgen(
+            load_idx = pp.create_load(
                 bus_branch_network,
                 bus=connected_topological_node.index,
                 p_mw=p / 1000000,
                 q_mvar=q / 1000000,
-                name=f"{power_electronics_connection.name}_sgen"
+                name=f"{power_electronics_connection.name}_load"
             )
-            return {f"sgen:{sgen_idx}": PpElement(sgen_idx, "sgen")}
+            return {f"load:{load_idx}": PpElement(load_idx, "load")}
         elif p < 0:
-            load_idx = pp.create_load(
+            sgen_idx = pp.create_sgen(
                 bus_branch_network,
                 bus=connected_topological_node.index,
                 p_mw=-p / 1000000,
                 q_mvar=-q / 1000000,
-                name=f"{power_electronics_connection.name}_load"
+                name=f"{power_electronics_connection.name}_sgen"
             )
-            return {f"load:{load_idx}": PpElement(load_idx, "load")}
+            return {f"sgen:{sgen_idx}": PpElement(sgen_idx, "sgen")}
 
     def has_negligible_impedance(self, ce: ConductingEquipment) -> bool:
         if isinstance(ce, AcLineSegment):
