@@ -67,7 +67,7 @@ class PandaPowerNetworkCreator(
             bus_branch_network,
             vn_kv=vn_v / 1000,
             name=f"bus_{_create_id_from_terminals(border_terminals)}",
-            geodata=coords[0] if len(coords) else None
+            geodata=coords[0] if coords else None
         )
         return f"bus:{bus_idx}", PpElement(bus_idx, "bus")
 
@@ -83,20 +83,21 @@ class PandaPowerNetworkCreator(
     ) -> Tuple[str, PpElement]:
         locations: List[Location] = [acls.location for acls in collapsed_ac_line_segments]
         coords = [(p.x_position, p.y_position) for location in locations for p in location.points]
-        voltage = [l.base_voltage.nominal_voltage for l in collapsed_ac_line_segments][0]
-        length = (length * 3 if voltage == 12700 else length) / 1000
+        length_km = (length or 1) / 1000
+
+        # Use r and x of first line
         line = next(iter(collapsed_ac_line_segments))
 
         # TODO: The source data has 0 rating lines so we need to add a hack here to make them rated for 1 amp.
         #  Otherwise the pandapower load flow will fail to run due to a division by 0
-        rating_ka = (1 if line.wire_info is None or line.wire_info.rated_current == 0 else line.wire_info.rated_current) / 1000
+        rating_ka = (line.wire_info and line.wire_info.rated_current or 1) / 1000
 
         line_idx = pp.create_line_from_parameters(
             bus_branch_network,
             name=",".join((cacls.name for cacls in collapsed_ac_line_segments)),
             from_bus=connected_topological_nodes[0].index,
             to_bus=connected_topological_nodes[1].index,
-            length_km=length,
+            length_km=length_km,
             r_ohm_per_km=line.per_length_sequence_impedance.r * 1000,
             x_ohm_per_km=line.per_length_sequence_impedance.x * 1000,
             max_i_ka=rating_ka,
@@ -147,7 +148,7 @@ class PandaPowerNetworkCreator(
             )
 
         end = next(iter(power_transformer.ends))
-        sn_mva = (1000000 if end.rated_s == 0 else end.rated_s) / 1000000
+        sn_mva = (end.rated_s or 1000000) / 1000000
         vn_hv_kv = upstream_voltage / 1000
         vn_lv_kv = downstream_voltage / 1000
         vector_group = "Dyn"
