@@ -255,6 +255,7 @@ class BasicPandaPowerNetworkCreator(
             node_breaker_network: NetworkService
     ) -> Dict[str, PpElement]:
         p, q = self.ec_load_provider(energy_consumer)
+        mapped_elements = {f"bus:{connected_topological_node.index}": connected_topological_node}
         if p > 0:
             load_idx = pp.create_load(
                 bus_branch_network,
@@ -263,7 +264,7 @@ class BasicPandaPowerNetworkCreator(
                 q_mvar=q / 1000000,
                 name=f"{energy_consumer.name}_load"
             )
-            return {f"load:{load_idx}": PpElement(load_idx, "load")}
+            mapped_elements[f"load:{load_idx}"] = PpElement(load_idx, "load")
         elif p < 0:
             sgen_idx = pp.create_sgen(
                 bus_branch_network,
@@ -272,7 +273,9 @@ class BasicPandaPowerNetworkCreator(
                 q_mvar=-q / 1000000,
                 name=f"{energy_consumer.name}_sgen"
             )
-            return {f"sgen:{sgen_idx}": PpElement(sgen_idx, "load")}
+            mapped_elements[f"sgen:{sgen_idx}"] = PpElement(sgen_idx, "sgen")
+
+        return mapped_elements
 
     def power_electronics_connection_creator(
             self,
@@ -281,6 +284,7 @@ class BasicPandaPowerNetworkCreator(
             connected_topological_node: PpElement,
             node_breaker_network: NetworkService,
     ) -> Dict[str, PpElement]:
+        mapped_elements = {f"bus:{connected_topological_node.index}": connected_topological_node}
         p, q = self.pec_load_provider(power_electronics_connection)
         if p > 0:
             load_idx = pp.create_load(
@@ -290,7 +294,7 @@ class BasicPandaPowerNetworkCreator(
                 q_mvar=q / 1000000,
                 name=f"{power_electronics_connection.name}_load"
             )
-            return {f"load:{load_idx}": PpElement(load_idx, "load")}
+            mapped_elements[f"load:{load_idx}"] = PpElement(load_idx, "load")
         elif p < 0:
             sgen_idx = pp.create_sgen(
                 bus_branch_network,
@@ -299,7 +303,9 @@ class BasicPandaPowerNetworkCreator(
                 q_mvar=-q / 1000000,
                 name=f"{power_electronics_connection.name}_sgen"
             )
-            return {f"sgen:{sgen_idx}": PpElement(sgen_idx, "sgen")}
+            mapped_elements[f"sgen:{sgen_idx}"] = PpElement(sgen_idx, "sgen")
+
+        return mapped_elements
 
     def has_negligible_impedance(self, ce: ConductingEquipment) -> bool:
         if isinstance(ce, AcLineSegment):
