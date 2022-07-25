@@ -9,7 +9,8 @@ from typing import FrozenSet, Tuple, Iterable, List, Optional, Callable, Dict
 import pandapower as pp
 from zepben.evolve import Terminal, NetworkService, AcLineSegment, PowerTransformer, EnergyConsumer, \
     PowerTransformerEnd, ConductingEquipment, \
-    PowerElectronicsConnection, Location, BusBranchNetworkCreator, EnergySource, Switch, Junction, EquivalentBranch
+    PowerElectronicsConnection, Location, BusBranchNetworkCreator, EnergySource, Switch, Junction, EquivalentBranch, \
+    EnergyConnection
 
 from pp_creators.utils import get_upstream_end_to_tns
 from pp_creators.validators.validator import PandaPowerNetworkValidator
@@ -255,7 +256,7 @@ class BasicPandaPowerNetworkCreator(
             node_breaker_network: NetworkService
     ) -> Dict[str, PpElement]:
         p, q = self.ec_load_provider(energy_consumer)
-        mapped_elements = {f"bus:{connected_topological_node.index}": connected_topological_node}
+        mapped_elements = dict()
         if p > 0:
             load_idx = pp.create_load(
                 bus_branch_network,
@@ -284,7 +285,7 @@ class BasicPandaPowerNetworkCreator(
             connected_topological_node: PpElement,
             node_breaker_network: NetworkService,
     ) -> Dict[str, PpElement]:
-        mapped_elements = {f"bus:{connected_topological_node.index}": connected_topological_node}
+        mapped_elements = dict()
         p, q = self.pec_load_provider(power_electronics_connection)
         if p > 0:
             load_idx = pp.create_load(
@@ -322,6 +323,8 @@ class BasicPandaPowerNetworkCreator(
         if isinstance(ce, Junction):
             return True
         if isinstance(ce, EquivalentBranch):
+            return True
+        if isinstance(ce, EnergyConnection):
             return True
         return False
 
