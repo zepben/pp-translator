@@ -4,9 +4,9 @@
 #  License, v. 2.0. If a copy of the MPL was not distributed with this
 #  file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import logging
-import asyncio
+from typing import FrozenSet, Tuple, Iterable, List, Optional, Callable, Dict, TypeVar
+
 from scipy.spatial import distance
-from typing import FrozenSet, Tuple, Iterable, List, Optional, Callable, Dict, TypeVar, Coroutine
 
 T = TypeVar("T")
 
@@ -14,7 +14,7 @@ import pandapower as pp
 from zepben.evolve import Terminal, NetworkService, AcLineSegment, PowerTransformer, EnergyConsumer, \
     PowerTransformerEnd, ConductingEquipment, \
     PowerElectronicsConnection, Location, BusBranchNetworkCreator, EnergySource, Switch, Junction, EquivalentBranch, \
-    EnergyConnection, Traversal, connected_equipment, LifoQueue
+    connected_equipment
 
 from pp_creators.utils import get_upstream_end_to_tns
 from pp_creators.validators.validator import PandaPowerNetworkValidator
