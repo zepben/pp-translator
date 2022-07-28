@@ -4,12 +4,17 @@
 #  License, v. 2.0. If a copy of the MPL was not distributed with this
 #  file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import logging
-from typing import FrozenSet, Tuple, Iterable, List, Optional, Callable, Dict
+from typing import FrozenSet, Tuple, Iterable, List, Optional, Callable, Dict, TypeVar
+
+from scipy.spatial import distance
+
+T = TypeVar("T")
 
 import pandapower as pp
 from zepben.evolve import Terminal, NetworkService, AcLineSegment, PowerTransformer, EnergyConsumer, \
     PowerTransformerEnd, ConductingEquipment, \
-    PowerElectronicsConnection, Location, BusBranchNetworkCreator, EnergySource, Switch, Junction, EquivalentBranch
+    PowerElectronicsConnection, Location, BusBranchNetworkCreator, EnergySource, Switch, Junction, EquivalentBranch, \
+    connected_equipment
 
 from pp_creators.utils import get_upstream_end_to_tns
 from pp_creators.validators.validator import PandaPowerNetworkValidator
@@ -83,9 +88,34 @@ class BasicPandaPowerNetworkCreator(
             inner_terminals: FrozenSet[Terminal],
             node_breaker_network: NetworkService
     ) -> Tuple[str, PpElement]:
-        locations: List[Location] = [acls.location for acls in collapsed_ac_line_segments]
-        coords = [(p.x_position, p.y_position) for location in locations for p in location.points]
         length_km = (length or 1) / 1000
+
+        start_acls = next(iter(border_terminals)).conducting_equipment
+        if start_acls in collapsed_ac_line_segments:
+            acls_series = _order_collapsed_ac_line_segments(collapsed_ac_line_segments, start_acls)
+        else:
+            acls_series = list(collapsed_ac_line_segments)
+        locations: List[Location] = [acls.location for acls in acls_series if acls.location]
+        coords = [(p.x_position, p.y_position) for p in locations[0].points]
+        if len(locations) >= 2:
+            next_coords = [(p.x_position, p.y_position) for p in locations[1].points]
+            # Make sure we start the coordinates in the right direction
+            min_dist1 = min(
+                distance.euclidean(coords[-1], next_coords[-1]),
+                distance.euclidean(coords[-1], next_coords[0])
+            )
+            min_dist2 = min(
+                distance.euclidean(coords[0], next_coords[-1]),
+                distance.euclidean(coords[0], next_coords[0])
+            )
+            if min_dist2 < min_dist1:
+                coords = coords[::-1]
+
+            for location in locations[1:]:
+                next_coords = [(p.x_position, p.y_position) for p in location.points]
+                if distance.euclidean(coords[-1], next_coords[-1]) < distance.euclidean(coords[-1], next_coords[0]):
+                    next_coords = next_coords[::-1]
+                coords.extend(next_coords)
 
         # Use r and x of first line
         line = next(iter(collapsed_ac_line_segments))
@@ -255,6 +285,7 @@ class BasicPandaPowerNetworkCreator(
             node_breaker_network: NetworkService
     ) -> Dict[str, PpElement]:
         p, q = self.ec_load_provider(energy_consumer)
+        mapped_elements = dict()
         if p > 0:
             load_idx = pp.create_load(
                 bus_branch_network,
@@ -263,7 +294,7 @@ class BasicPandaPowerNetworkCreator(
                 q_mvar=q / 1000000,
                 name=f"{energy_consumer.name}_load"
             )
-            return {f"load:{load_idx}": PpElement(load_idx, "load")}
+            mapped_elements[f"load:{load_idx}"] = PpElement(load_idx, "load")
         elif p < 0:
             sgen_idx = pp.create_sgen(
                 bus_branch_network,
@@ -272,7 +303,9 @@ class BasicPandaPowerNetworkCreator(
                 q_mvar=-q / 1000000,
                 name=f"{energy_consumer.name}_sgen"
             )
-            return {f"sgen:{sgen_idx}": PpElement(sgen_idx, "load")}
+            mapped_elements[f"sgen:{sgen_idx}"] = PpElement(sgen_idx, "sgen")
+
+        return mapped_elements
 
     def power_electronics_connection_creator(
             self,
@@ -281,6 +314,7 @@ class BasicPandaPowerNetworkCreator(
             connected_topological_node: PpElement,
             node_breaker_network: NetworkService,
     ) -> Dict[str, PpElement]:
+        mapped_elements = dict()
         p, q = self.pec_load_provider(power_electronics_connection)
         if p > 0:
             load_idx = pp.create_load(
@@ -290,7 +324,7 @@ class BasicPandaPowerNetworkCreator(
                 q_mvar=q / 1000000,
                 name=f"{power_electronics_connection.name}_load"
             )
-            return {f"load:{load_idx}": PpElement(load_idx, "load")}
+            mapped_elements[f"load:{load_idx}"] = PpElement(load_idx, "load")
         elif p < 0:
             sgen_idx = pp.create_sgen(
                 bus_branch_network,
@@ -299,7 +333,9 @@ class BasicPandaPowerNetworkCreator(
                 q_mvar=-q / 1000000,
                 name=f"{power_electronics_connection.name}_sgen"
             )
-            return {f"sgen:{sgen_idx}": PpElement(sgen_idx, "sgen")}
+            mapped_elements[f"sgen:{sgen_idx}"] = PpElement(sgen_idx, "sgen")
+
+        return mapped_elements
 
     def has_negligible_impedance(self, ce: ConductingEquipment) -> bool:
         if isinstance(ce, AcLineSegment):
@@ -326,3 +362,23 @@ class BasicPandaPowerNetworkCreator(
 def _create_id_from_terminals(ts: Iterable[Terminal]):
     "_".join(sorted((t.mrid for t in ts)))
     pass
+
+
+def _order_collapsed_ac_line_segments(
+        collapsed_ac_line_segments: FrozenSet[AcLineSegment],
+        start_acls: AcLineSegment
+) -> List[AcLineSegment]:
+    remaining_acls = set(collapsed_ac_line_segments)
+    acls_series = []
+    current_acls = start_acls
+    while current_acls:
+        remaining_acls.remove(current_acls)
+        acls_series.append(current_acls)
+        for cr in connected_equipment(current_acls):
+            if cr.to_equip in remaining_acls:
+                current_acls = cr.to_equip
+                break
+        else:
+            current_acls = None
+
+    return acls_series
