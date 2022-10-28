@@ -6,6 +6,6 @@ jobs:
   run:
     uses: zepben/.github/.github/workflows/python-lib-release.yml@main
     with:
-      private: true
-      licencecheck: false   # Set to true if private = false (OSS)
+      private: false
+      licencecheck: true   # Set to true if private = false (OSS)
     secrets: inherit
