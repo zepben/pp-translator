@@ -1,4 +1,4 @@
-## [0.6.0] - UNRELEASED
+## [0.6.0] - 2022-11-14
 
 ##### Breaking Changes
 * None.
