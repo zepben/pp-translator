@@ -1,4 +1,4 @@
-## [0.4.0] - UNRELEASED
+## [0.6.0] - UNRELEASED
 
 ##### Breaking Changes
 * None.
