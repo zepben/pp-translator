@@ -4,7 +4,7 @@
 * None.
 
 ##### New Features
-* None.
+* Added support for SDK version 0.35.0.
 
 ##### Enhancements
 * None.
