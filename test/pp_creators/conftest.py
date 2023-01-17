@@ -6,13 +6,14 @@
 
 from typing import List
 
-from pytest import fixture
+import pytest_asyncio
 from zepben.evolve import PhaseCode, NetworkService, BaseVoltage, EnergySource, Terminal, ConductingEquipment, \
     AcLineSegment, PerLengthSequenceImpedance, \
-    PowerTransformer, PowerTransformerEnd, EnergyConsumer, OverheadWireInfo, PowerTransformerInfo, EnergySourcePhase
+    PowerTransformer, PowerTransformerEnd, EnergyConsumer, OverheadWireInfo, PowerTransformerInfo, EnergySourcePhase, \
+    set_phases, set_direction, Feeder
 
 
-@fixture()
+@pytest_asyncio.fixture()
 async def simple_node_breaker_network() -> NetworkService:
     # Network
     network = NetworkService()
@@ -63,6 +64,10 @@ async def simple_node_breaker_network() -> NetworkService:
     es_t = _create_terminal(es)
     network.add(es_t)
 
+    # Feeder
+    fdr = Feeder(mrid="feeder", name="Feeder", normal_head_terminal=es_t)
+    network.add(fdr)
+
     # Transformer
     tx = PowerTransformer(mrid="transformer", name="Transformer")
     tx.asset_info = pt_info
@@ -97,7 +102,8 @@ async def simple_node_breaker_network() -> NetworkService:
 
     network.connect_terminals(line_terminals[1], ec_t)
 
-    await network.set_phases()
+    await set_direction().run(network)
+    await set_phases().run(network)
     return network
 
 
