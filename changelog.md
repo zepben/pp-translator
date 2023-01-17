@@ -10,7 +10,8 @@
 * None.
 
 ##### Fixes
-* None.
+* Fix bug where attempting to translate lines using `BasicPandaPowerNetworkCreator` resulted in an error if the lines
+  did not have `Location`s.
 
 ##### Notes
 * None.
