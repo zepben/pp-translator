@@ -96,7 +96,9 @@ class BasicPandaPowerNetworkCreator(
         else:
             acls_series = list(collapsed_ac_line_segments)
         locations: List[Location] = [acls.location for acls in acls_series if acls.location]
-        coords = [(p.x_position, p.y_position) for p in locations[0].points]
+        coords = []
+        if locations:
+            coords = [(p.x_position, p.y_position) for p in locations[0].points]
         if len(locations) >= 2:
             next_coords = [(p.x_position, p.y_position) for p in locations[1].points]
             # Make sure we start the coordinates in the right direction
