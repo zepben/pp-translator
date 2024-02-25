@@ -127,3 +127,5 @@ dmypy.json
 .pyre/
 
 /todo.md
+docs/build
+docs/node_modules
