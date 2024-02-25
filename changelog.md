@@ -1,5 +1,5 @@
 # Pandapower Zepben CIM translator
-## [0.7.0] - UNRELEASED
+## [0.7.0] - 2024-02-26
 ### Breaking Changes
 * None.
 
