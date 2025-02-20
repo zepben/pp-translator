@@ -7,5 +7,4 @@ jobs:
     uses: zepben/.github/.github/workflows/python-lib-release.yml@main
     with:
       private: false
-      licencecheck: true   # Set to true if private = false (OSS)
     secrets: inherit
