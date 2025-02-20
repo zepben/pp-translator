@@ -10,7 +10,7 @@ import pytest as pytest
 import pandapower as pp
 
 from pp_creators.basic_creator import BasicPandaPowerNetworkCreator
-from pp_test_utils import validate_pp_load_flow_results
+from test.pp_test_utils import validate_pp_load_flow_results
 
 
 # Refer to pandapower's simple 3-bus network example: https://www.pandapower.org/start/#a-short-introduction-
@@ -81,9 +81,7 @@ async def test_create_pp_bus_branch_model(simple_node_breaker_network):
                 "parallel": 1,
                 "df": 1.0,
                 "in_service": True,
-                "pt_percent": numpy.NAN,
-                "vector_group": "Dyn",
-                "oltc": 0
+                "vector_group": "Dyn"
             }
         ],
         "trafo",

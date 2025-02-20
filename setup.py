@@ -10,7 +10,7 @@ from os.path import splitext
 
 from setuptools import setup, find_packages
 
-test_deps = ["pytest", "pytest-cov", "pytest-asyncio", "hypothesis"]
+test_deps = ["pytest", "pytest-cov", "pytest-asyncio", "hypothesis", "numpy"]
 setup(
     name="pp-translator",
     description="Library for translating Zepben CIM network models to pandapower models",
@@ -33,8 +33,8 @@ setup(
     python_requires='>=3.7',
     py_modules=[splitext(basename(path))[0] for path in glob('src/**/*.py')],
     install_requires=[
-        "zepben.evolve==0.37.2",
-        "pandapower==2.13.1"
+        "zepben.evolve==0.44.1",
+        "pandapower==2.14.11"
     ],
     extras_require={
         "test": test_deps,
