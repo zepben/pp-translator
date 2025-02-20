@@ -83,7 +83,7 @@ async def simple_node_breaker_network() -> NetworkService:
     network.connect_terminals(tx_terminals[0], es_t)
 
     # Line
-    line = AcLineSegment(mrid="line", name="Line", length=100.0, per_length_sequence_impedance=plsi)
+    line = AcLineSegment(mrid="line", name="Line", length=100.0, per_length_impedance=plsi)
     line.asset_info = wire_info
     line.base_voltage = bv_lv
     line_terminals = _create_terminals(line)
