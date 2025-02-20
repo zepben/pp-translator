@@ -1,5 +1,5 @@
 # Pandapower Zepben CIM translator
-## [0.8.0] - UNRELEASED
+## [0.8.0] - 2025-02-20
 ### Breaking Changes
 * oltc and pt_percent are no longer in the trafo table in powerfactory results
 
